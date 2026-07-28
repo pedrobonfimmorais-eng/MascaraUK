@@ -4,6 +4,7 @@ import { t } from "@/i18n";
 import { siteConfig } from "@/config/site";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,9 +34,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <ToastProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </ToastProvider>
       </body>
     </html>
   );

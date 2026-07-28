@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { mergeGuestCartIntoUser } from "@/lib/actions/cart";
 
 export interface AuthActionState {
   error: string | null;
@@ -20,10 +21,14 @@ export async function signIn(_prevState: AuthActionState, formData: FormData): P
   const redirectTo = String(formData.get("redirect") ?? "/minha-conta");
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     return { error: "E-mail ou senha inválidos." };
+  }
+
+  if (data.user) {
+    await mergeGuestCartIntoUser(data.user.id);
   }
 
   redirect(redirectTo);
@@ -44,7 +49,7 @@ export async function signUp(_prevState: AuthActionState, formData: FormData): P
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { data: { full_name: fullName } },
@@ -52,6 +57,10 @@ export async function signUp(_prevState: AuthActionState, formData: FormData): P
 
   if (error) {
     return { error: "Não foi possível criar a conta. Tente novamente." };
+  }
+
+  if (data.user) {
+    await mergeGuestCartIntoUser(data.user.id);
   }
 
   redirect("/minha-conta");

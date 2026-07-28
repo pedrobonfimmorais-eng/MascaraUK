@@ -3,6 +3,7 @@ import { t } from "@/i18n";
 import { Container } from "@/components/ui/Container";
 import { DemoNotice } from "@/components/ui/DemoNotice";
 import { CategoryCard } from "@/components/product/CategoryCard";
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { getCategories } from "@/lib/catalog";
 
 export const metadata: Metadata = {
@@ -15,6 +16,8 @@ export default async function CategoriesPage() {
 
   return (
     <Container className="flex flex-col gap-6 py-10">
+      <Breadcrumbs items={[{ label: t("breadcrumbs.home"), href: "/" }, { label: t("categories.pageTitle") }]} />
+
       <div>
         <h1 className="text-2xl font-bold text-brand-secondary sm:text-3xl">
           {t("categories.pageTitle")}

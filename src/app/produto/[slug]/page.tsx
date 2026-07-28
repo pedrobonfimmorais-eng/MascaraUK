@@ -1,13 +1,17 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { t } from "@/i18n";
 import { Container } from "@/components/ui/Container";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { DemoNotice } from "@/components/ui/DemoNotice";
-import { formatCurrency } from "@/lib/utils";
-import { getProductBySlug } from "@/lib/catalog";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { ProductGallery } from "@/components/product/ProductGallery";
+import { ProductPurchasePanel } from "@/components/product/ProductPurchasePanel";
+import { RecentlyViewed } from "@/components/product/RecentlyViewed";
+import { ReviewsSection } from "@/components/product/ReviewsSection";
+import { ProductSection } from "@/components/home/ProductSection";
+import { getProductBySlug, getRelatedProducts } from "@/lib/catalog";
+import { siteConfig } from "@/config/site";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -17,7 +21,21 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   const { slug } = await params;
   const { product } = await getProductBySlug(slug);
   if (!product) return { title: t("products.pageTitle") };
-  return { title: product.name, description: product.description ?? undefined };
+
+  const description = product.shortDescription ?? product.description ?? undefined;
+
+  return {
+    title: product.name,
+    description,
+    alternates: { canonical: `${siteConfig.url}/produto/${product.slug}` },
+    openGraph: {
+      title: product.name,
+      description,
+      images: product.imageUrl ? [{ url: product.imageUrl }] : undefined,
+      url: `${siteConfig.url}/produto/${product.slug}`,
+      type: "website",
+    },
+  };
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
@@ -26,71 +44,130 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   if (!product) notFound();
 
-  const onSale = !!product.compareAtPrice && product.compareAtPrice > product.price;
+  const { items: related } = await getRelatedProducts(product);
+
+  const galleryImages = product.images.length > 0 ? product.images : product.imageUrl ? [product.imageUrl] : [];
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.shortDescription ?? product.description ?? undefined,
+    sku: product.sku ?? undefined,
+    image: galleryImages.length > 0 ? galleryImages : undefined,
+    category: product.categoryName ?? undefined,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "BRL",
+      price: product.price.toFixed(2),
+      availability:
+        product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      url: `${siteConfig.url}/produto/${product.slug}`,
+    },
+    ...(product.ratingCount > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: product.avgRating,
+            reviewCount: product.ratingCount,
+          },
+        }
+      : {}),
+  };
 
   return (
     <Container className="flex flex-col gap-8 py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <Breadcrumbs
+        items={[
+          { label: t("breadcrumbs.home"), href: "/" },
+          ...(product.categoryName && product.categorySlug
+            ? [{ label: product.categoryName, href: `/categoria/${product.categorySlug}` }]
+            : []),
+          { label: product.name },
+        ]}
+      />
+
       {isDemo && <DemoNotice />}
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100">
-          {product.imageUrl ? (
-            <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-gray-400">
-              {t("meta.siteName")}
-            </div>
-          )}
-        </div>
+        <ProductGallery images={galleryImages} alt={product.name} />
+        <ProductPurchasePanel product={product} />
+      </div>
 
-        <div className="flex flex-col gap-4">
-          {product.categoryName && <Badge tone="brand">{product.categoryName}</Badge>}
-          <h1 className="text-2xl font-bold text-brand-secondary sm:text-3xl">{product.name}</h1>
-
-          <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-semibold text-brand-secondary">
-              {formatCurrency(product.price)}
-            </span>
-            {onSale && (
-              <span className="text-lg text-gray-400 line-through">
-                {formatCurrency(product.compareAtPrice!)}
-              </span>
-            )}
+      <section className="grid grid-cols-1 gap-8 border-t border-gray-200 pt-8 lg:grid-cols-2">
+        {(product.description || product.shortDescription) && (
+          <div>
+            <h2 className="font-semibold text-brand-secondary">{t("product.description")}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-700">
+              {product.description ?? product.shortDescription}
+            </p>
           </div>
+        )}
 
-          <p className="text-sm">
-            {product.inStock === false ? (
-              <Badge tone="danger">{t("product.outOfStock")}</Badge>
-            ) : (
-              <Badge tone="success">{t("product.inStock")}</Badge>
+        <div>
+          <h2 className="font-semibold text-brand-secondary">{t("product.specifications")}</h2>
+          <dl className="mt-2 flex flex-col gap-1 text-sm text-gray-700">
+            {product.sku && <SpecRow label={t("product.sku")} value={product.sku} />}
+            {product.categoryName && <SpecRow label={t("product.category")} value={product.categoryName} />}
+            {product.material && <SpecRow label="Material" value={product.material} />}
+            {product.theme && <SpecRow label="Tema" value={product.theme} />}
+            {product.weightGrams != null && (
+              <SpecRow label={t("product.weight")} value={`${product.weightGrams}g`} />
             )}
-          </p>
+            {product.dimensions && <SpecRow label={t("product.dimensions")} value={product.dimensions} />}
+            {product.packageContents && (
+              <SpecRow label={t("product.packageContents")} value={product.packageContents} />
+            )}
+          </dl>
 
-          <Button size="lg" disabled={product.inStock === false} className="w-full sm:w-auto">
-            {t("product.addToCart")}
-          </Button>
-
-          <p className="text-xs text-gray-500">{t("product.shippingNotice")}</p>
-
-          {product.sku && (
-            <p className="text-sm text-gray-500">
-              {t("product.sku")}: {product.sku}
+          {product.safetyInfo && (
+            <p className="mt-3 text-xs text-gray-500">
+              <strong>{t("product.safetyInfo")}:</strong> {product.safetyInfo}
             </p>
           )}
 
-          {product.description && (
-            <div>
-              <h2 className="font-semibold text-brand-secondary">{t("product.description")}</h2>
-              <p className="mt-1 text-sm leading-relaxed text-gray-700">{product.description}</p>
-            </div>
+          {(product.deliveryEstimateDaysMin || product.deliveryEstimateDaysMax) && (
+            <p className="mt-3 text-sm text-gray-700">
+              <strong>{t("product.deliveryEstimate")}:</strong>{" "}
+              {t("product.deliveryEstimateValue", {
+                min: product.deliveryEstimateDaysMin ?? 5,
+                max: product.deliveryEstimateDaysMax ?? 10,
+              })}
+            </p>
           )}
+
+          <p className="mt-2 text-sm text-gray-700">{t("product.returnsPolicySummary")}</p>
         </div>
-      </div>
+      </section>
+
+      <RecentlyViewed
+        current={{ slug: product.slug, name: product.name, imageUrl: product.imageUrl, price: product.price }}
+      />
+
+      <ProductSection title={t("product.relatedProducts")} products={related} />
+
+      <ReviewsSection productId={product.id} productSlug={product.slug} />
 
       <section className="border-t border-gray-200 pt-8">
-        <h2 className="text-lg font-semibold text-brand-secondary">{t("product.reviews")}</h2>
-        <p className="mt-2 text-sm text-gray-500">{t("product.noReviewsYet")}</p>
+        <h2 className="text-lg font-semibold text-brand-secondary">{t("product.questionsTitle")}</h2>
+        <div className="mt-3">
+          <EmptyState title={t("product.noQuestionsYet")} />
+        </div>
       </section>
     </Container>
+  );
+}
+
+function SpecRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4 border-b border-gray-100 py-1.5">
+      <dt className="text-gray-500">{label}</dt>
+      <dd className="text-right font-medium text-brand-secondary">{value}</dd>
+    </div>
   );
 }

@@ -34,6 +34,29 @@ function defaults(): StoreSettings {
 }
 
 /**
+ * Currency used for checkout/Stripe. Reads store_settings.store_currency so
+ * switching it later is a database/admin-panel change, never a code change.
+ */
+export async function getStoreCurrency(): Promise<string> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return "BRL";
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("store_settings")
+      .select("value")
+      .eq("key", "store_currency")
+      .maybeSingle();
+
+    return (data?.value as string) ?? "BRL";
+  } catch {
+    return "BRL";
+  }
+}
+
+/**
  * Reads store-wide settings the administrator can customize (name, logo,
  * colors, fonts, contact info, social links, footer/home texts) from the
  * `store_settings` key/value table. Falls back to the static defaults in

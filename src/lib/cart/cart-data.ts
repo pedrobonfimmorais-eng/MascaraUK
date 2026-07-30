@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getGuestSessionId, getOrCreateGuestSessionId } from "@/lib/cart/session";
 import { computePricing } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
+import { getStoreCurrency } from "@/lib/store-settings";
 import type { Cart, DiscountType } from "@/types/database";
 
 export interface ValidatedCartItem {
@@ -12,6 +13,7 @@ export interface ValidatedCartItem {
   productSlug: string;
   name: string;
   variantLabel: string | null;
+  sku: string | null;
   imageUrl: string | null;
   quantity: number;
   unitPrice: number;
@@ -68,6 +70,7 @@ export interface ValidatedCart {
   shippingOptionId: string | null;
   shipping: ShippingEstimate;
   hasBlockingIssues: boolean;
+  currencyCode: string;
 }
 
 function round2(value: number): number {
@@ -126,7 +129,7 @@ async function computeShipping(params: {
   };
 }
 
-function emptyValidatedCart(shipping: ShippingEstimate): ValidatedCart {
+function emptyValidatedCart(shipping: ShippingEstimate, currencyCode: string): ValidatedCart {
   return {
     cartId: null,
     items: [],
@@ -141,6 +144,7 @@ function emptyValidatedCart(shipping: ShippingEstimate): ValidatedCart {
     shippingOptionId: null,
     shipping,
     hasBlockingIssues: false,
+    currencyCode,
   };
 }
 
@@ -271,6 +275,7 @@ type ProductRow = {
   id: string;
   name: string;
   slug: string;
+  sku: string | null;
   base_price: number;
   compare_at_price: number | null;
   flash_sale_price: number | null;
@@ -283,6 +288,7 @@ type VariantRow = {
   product_id: string;
   name: string;
   value: string;
+  sku: string | null;
   price_adjustment: number;
   sale_price: number | null;
   image_url: string | null;
@@ -296,13 +302,14 @@ type VariantRow = {
  */
 export async function getValidatedCart(): Promise<ValidatedCart> {
   const cart = await findCart();
+  const currencyCode = await getStoreCurrency();
   const shippingFallback = await computeShipping({
     subtotalAfterDiscount: 0,
     optionId: cart?.shipping_option_id ?? null,
     freeShippingFromCoupon: false,
   });
 
-  if (!cart) return emptyValidatedCart(shippingFallback);
+  if (!cart) return emptyValidatedCart(shippingFallback, currencyCode);
 
   const supabase = await createClient();
   const { data: cartItems } = await supabase
@@ -312,7 +319,11 @@ export async function getValidatedCart(): Promise<ValidatedCart> {
     .order("created_at", { ascending: true });
 
   if (!cartItems || cartItems.length === 0) {
-    return { ...emptyValidatedCart(shippingFallback), cartId: cart.id, shippingZipCode: cart.shipping_zip_code };
+    return {
+      ...emptyValidatedCart(shippingFallback, currencyCode),
+      cartId: cart.id,
+      shippingZipCode: cart.shipping_zip_code,
+    };
   }
 
   const productIds = [...new Set(cartItems.map((i) => i.product_id))];
@@ -321,12 +332,12 @@ export async function getValidatedCart(): Promise<ValidatedCart> {
   const [{ data: products }, variantsResult, { data: images }, { data: inventoryRows }] = await Promise.all([
     supabase
       .from("products")
-      .select("id, name, slug, base_price, compare_at_price, flash_sale_price, flash_sale_ends_at, is_active")
+      .select("id, name, slug, sku, base_price, compare_at_price, flash_sale_price, flash_sale_ends_at, is_active")
       .in("id", productIds),
     variantIds.length > 0
       ? supabase
           .from("product_variants")
-          .select("id, product_id, name, value, price_adjustment, sale_price, image_url, is_active")
+          .select("id, product_id, name, value, sku, price_adjustment, sale_price, image_url, is_active")
           .in("id", variantIds)
       : Promise.resolve({ data: [] as VariantRow[] }),
     supabase.from("product_images").select("product_id, url, is_primary").in("product_id", productIds),
@@ -369,6 +380,7 @@ export async function getValidatedCart(): Promise<ValidatedCart> {
         productSlug: product?.slug ?? "",
         name: product?.name ?? "Produto indisponível",
         variantLabel,
+        sku: variant?.sku ?? product?.sku ?? null,
         imageUrl: null,
         quantity: row.quantity,
         unitPrice: 0,
@@ -407,6 +419,7 @@ export async function getValidatedCart(): Promise<ValidatedCart> {
       productSlug: product.slug,
       name: product.name,
       variantLabel,
+      sku: variant?.sku ?? product.sku ?? null,
       imageUrl: variant?.image_url ?? primaryImage?.url ?? null,
       quantity: row.quantity,
       unitPrice: pricing.currentPrice,
@@ -454,6 +467,7 @@ export async function getValidatedCart(): Promise<ValidatedCart> {
     shippingOptionId: cart.shipping_option_id,
     shipping,
     hasBlockingIssues,
+    currencyCode,
   };
 }
 

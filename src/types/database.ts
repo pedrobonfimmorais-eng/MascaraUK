@@ -15,24 +15,47 @@
 
 export type UserRole = "cliente" | "administrador";
 
+/** Status de ENVIO/preparação do pedido — nunca deve ser confundido com o pagamento. */
 export type OrderStatus =
-  | "aguardando_pagamento"
-  | "pagamento_confirmado"
+  | "recebido"
   | "em_preparacao"
+  | "pronto_para_envio"
   | "enviado"
   | "entregue"
   | "cancelado"
+  | "devolucao_solicitada"
+  | "devolvido";
+
+/** Status do PAGAMENTO — separado do status de envio (orders.status). */
+export type PaymentStatus =
+  | "aguardando_pagamento"
+  | "processando"
+  | "pago"
+  | "recusado"
+  | "expirado"
+  | "cancelado"
+  | "reembolsado_parcial"
   | "reembolsado";
 
-export type PaymentStatus = "pendente" | "pago" | "falhou" | "reembolsado";
-
 export type DiscountType = "percentual" | "valor_fixo";
+
+export type StockMovementReason =
+  | "venda_confirmada"
+  | "cancelamento"
+  | "reembolso"
+  | "devolucao"
+  | "ajuste_manual";
 
 export type Profile = {
   id: string;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   phone: string | null;
   role: UserRole;
+  marketing_opt_in: boolean;
+  terms_accepted_at: string | null;
+  birth_date: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -42,6 +65,7 @@ export type Address = {
   user_id: string;
   label: string | null;
   recipient_name: string;
+  phone: string | null;
   zip_code: string;
   street: string;
   number: string;
@@ -50,7 +74,10 @@ export type Address = {
   city: string;
   state: string;
   country: string;
+  reference: string | null;
   is_default: boolean;
+  is_shipping_default: boolean;
+  is_billing_default: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -173,6 +200,7 @@ export type Order = {
   order_number: string;
   user_id: string | null;
   status: OrderStatus;
+  payment_status: PaymentStatus;
   subtotal: number;
   discount_total: number;
   shipping_total: number;
@@ -180,10 +208,24 @@ export type Order = {
   currency: string;
   coupon_code: string | null;
   shipping_address_snapshot: Record<string, unknown> | null;
+  billing_address_snapshot: Record<string, unknown> | null;
   customer_email: string;
   customer_name: string;
+  customer_first_name: string | null;
+  customer_last_name: string | null;
   customer_phone: string | null;
   notes: string | null;
+  internal_notes: string | null;
+  tracking_carrier: string | null;
+  tracking_code: string | null;
+  tracking_url: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  paid_at: string | null;
+  cancelled_at: string | null;
+  expires_at: string | null;
+  stock_confirmed: boolean;
+  is_guest_order: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -195,7 +237,11 @@ export type OrderItem = {
   variant_id: string | null;
   product_name_snapshot: string;
   variant_label_snapshot: string | null;
+  sku_snapshot: string | null;
+  image_url_snapshot: string | null;
   unit_price: number;
+  previous_unit_price: number | null;
+  discount_amount: number;
   quantity: number;
   total: number;
   created_at: string;
@@ -211,7 +257,64 @@ export type Payment = {
   amount: number;
   currency: string;
   paid_at: string | null;
+  failure_message: string | null;
   raw_response: Record<string, unknown> | null;
+  created_at: string;
+};
+
+export type Refund = {
+  id: string;
+  order_id: string;
+  payment_id: string | null;
+  stripe_refund_id: string | null;
+  amount: number;
+  currency: string;
+  reason: string | null;
+  internal_note: string | null;
+  status: "pendente" | "concluido" | "falhou";
+  restocked: boolean;
+  admin_id: string | null;
+  created_at: string;
+};
+
+export type OrderEvent = {
+  id: string;
+  order_id: string;
+  event_type: string;
+  previous_status: string | null;
+  new_status: string | null;
+  note: string | null;
+  admin_id: string | null;
+  created_at: string;
+};
+
+export type StockMovement = {
+  id: string;
+  product_id: string;
+  variant_id: string | null;
+  order_id: string | null;
+  order_number: string | null;
+  previous_quantity: number;
+  changed_quantity: number;
+  new_quantity: number;
+  reason: StockMovementReason;
+  created_at: string;
+};
+
+export type StripeWebhookEvent = {
+  id: string;
+  event_type: string;
+  order_id: string | null;
+  created_at: string;
+};
+
+export type OrderAccessToken = {
+  id: string;
+  order_id: string;
+  token: string;
+  email: string;
+  expires_at: string;
+  used_at: string | null;
   created_at: string;
 };
 
@@ -289,6 +392,13 @@ export type CustomPage = {
   updated_at: string;
 };
 
+export type LoginAttempt = {
+  id: string;
+  email: string;
+  success: boolean;
+  created_at: string;
+};
+
 export type AdminLog = {
   id: string;
   admin_id: string | null;
@@ -338,6 +448,12 @@ export type Database = {
       orders: TableDef<Order>;
       order_items: TableDef<OrderItem>;
       payments: TableDef<Payment>;
+      refunds: TableDef<Refund>;
+      order_events: TableDef<OrderEvent>;
+      stock_movements: TableDef<StockMovement>;
+      stripe_webhook_events: TableDef<StripeWebhookEvent>;
+      order_access_tokens: TableDef<OrderAccessToken>;
+      login_attempts: TableDef<LoginAttempt>;
       coupons: TableDef<Coupon>;
       promotions: TableDef<Promotion>;
       reviews: TableDef<Review>;
@@ -353,12 +469,46 @@ export type Database = {
         Args: Record<string, never>;
         Returns: boolean;
       };
+      generate_order_number: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
+      reserve_stock: {
+        Args: { p_product_id: string; p_variant_id: string | null; p_qty: number };
+        Returns: boolean;
+      };
+      release_stock: {
+        Args: { p_product_id: string; p_variant_id: string | null; p_qty: number };
+        Returns: void;
+      };
+      confirm_stock_sale: {
+        Args: {
+          p_product_id: string;
+          p_variant_id: string | null;
+          p_qty: number;
+          p_order_id: string;
+          p_order_number: string;
+        };
+        Returns: void;
+      };
+      return_stock_to_inventory: {
+        Args: {
+          p_product_id: string;
+          p_variant_id: string | null;
+          p_qty: number;
+          p_order_id: string;
+          p_order_number: string;
+          p_reason: StockMovementReason;
+        };
+        Returns: void;
+      };
     };
     Enums: {
       user_role: UserRole;
       order_status: OrderStatus;
       payment_status: PaymentStatus;
       discount_type: DiscountType;
+      stock_movement_reason: StockMovementReason;
     };
   };
 };

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mergeGuestCartIntoUser } from "@/lib/actions/cart";
+import { sendTemplateEmail, passwordChangedEmail } from "@/lib/email";
 
 export interface AuthActionState {
   error: string | null;
@@ -241,6 +242,22 @@ export async function updatePasswordWithRecoverySession(
 
   if (error) {
     return { error: "Não foi possível redefinir a senha. Solicite um novo link de recuperação." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user?.email) {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    await sendTemplateEmail(
+      user.email,
+      passwordChangedEmail(
+        user.user_metadata?.full_name ?? user.email,
+        new Date().toLocaleString("pt-BR"),
+        `${siteUrl}/contato`
+      )
+    );
   }
 
   return { error: null, success: true };

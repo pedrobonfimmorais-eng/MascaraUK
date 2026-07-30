@@ -39,6 +39,10 @@ controla o estoque, recebe os pedidos e organiza os envios pelo painel
    | `STRIPE_WEBHOOK_SECRET` | Painel Stripe → Developers → Webhooks (ou `stripe listen`) |
    | `RESEND_API_KEY` / `EMAIL_FROM` | Painel [Resend](https://resend.com) → API Keys. Sem a chave, os e-mails de pedido só são registrados no log do servidor (não são enviados de verdade) |
    | `ADMIN_NOTIFICATION_EMAIL` | E-mail interno que recebe o aviso de "novo pedido pago" |
+   | `ADMIN_SETUP_SECRET` | Defina você mesmo (qualquer texto longo) antes de rodar `npm run create-admin` — ver seção abaixo |
+
+   Veja `.env.example` para a lista completa e comentada de todas as
+   variáveis (incluindo as reservadas para uso futuro, como `CRON_SECRET`).
 
    O site funciona mesmo sem essas variáveis configuradas: as páginas públicas
    mostram produtos e categorias de demonstração (claramente identificados
@@ -46,10 +50,11 @@ controla o estoque, recebe os pedidos e organiza os envios pelo painel
    simplesmente redirecionam para o login.
 
 3. Crie as tabelas no seu projeto Supabase executando, **em ordem**, o SQL de
-   `supabase/migrations/0001_init.sql`, `0002_catalog_and_cart.sql`,
-   `0003_orders_payments_stripe.sql` e `0004_analytics_reports.sql` (SQL Editor
-   do painel Supabase, ou via Supabase CLI: `supabase db push`). Opcionalmente
-   rode também `supabase/seed.sql` para ver produtos de exemplo reais no banco.
+   todos os arquivos em `supabase/migrations/` (`0001_init.sql` até
+   `0006_legal_content.sql`) — SQL Editor do painel Supabase, ou via Supabase
+   CLI: `supabase db push`. Veja o passo a passo em
+   `CONFIGURACAO-SUPABASE.md`. Opcionalmente rode também `supabase/seed.sql`
+   para ver produtos de exemplo reais no banco.
 
 4. Rode o servidor de desenvolvimento:
 
@@ -74,12 +79,17 @@ isso é garantido tanto na interface quanto no banco de dados (o trigger
 `handle_new_user` sempre insere `role = 'cliente'`, ignorando qualquer dado
 enviado pelo cliente).
 
-Para promover uma conta a administradora:
+O primeiro administrador (`administrador_principal`, com acesso total) é
+criado por um script de terminal, protegido pela variável
+`ADMIN_SETUP_SECRET`:
 
-1. Crie uma conta normalmente pela loja (`/cadastro`).
-2. No painel Supabase, abra **Table Editor → profiles**, encontre a linha do
-   usuário e altere a coluna `role` para `administrador`.
-3. Faça login novamente — a conta agora acessa `/admin`.
+```bash
+npm run create-admin
+```
+
+Veja o passo a passo completo em `GUIA-INICIANTE.md`. Depois do primeiro
+administrador criado, os próximos são convidados de dentro do painel em
+`/admin/administradores` (link de uso único, nunca uma tela pública).
 
 ## Onde encontrar cada parte do projeto
 
@@ -98,11 +108,13 @@ Para promover uma conta a administradora:
 
 ## Estrutura de contas
 
-- **Cliente**: cadastro público em `/cadastro`, acessa `/minha-conta`.
-- **Administrador**: só é promovido diretamente no banco de dados (ver acima),
-  acessa `/admin`. Um cliente nunca alcança `/admin`, mesmo autenticado —
-  isso é verificado tanto em `src/proxy.ts` quanto novamente em
-  `src/app/admin/layout.tsx`.
+Seis papéis de acesso (ver `SEGURANCA.md` para a tabela completa):
+`cliente`, `estoque`, `atendimento`, `gerente`, `administrador` e
+`administrador_principal`. Um `cliente` nunca alcança `/admin`, mesmo
+autenticado — isso é verificado em `src/proxy.ts`, de novo em
+`src/app/admin/layout.tsx`, e por `requirePermission()`/`requirePrincipal()`
+(`src/lib/auth.ts`) em cada Server Action sensível. A capacidade de cada
+papel está centralizada em `src/lib/permissions.ts`.
 
 ## Internacionalização
 
@@ -289,3 +301,79 @@ qualquer página de analytics.
 - Integrações com Google Analytics/GTM/Meta Pixel/TikTok Pixel têm campos
   preparados em `store_settings.tracking_integrations`, mas o carregamento
   condicional dos scripts em si ainda não foi implementado.
+
+## Revisão final, segurança, documentação e publicação (Prompt 6)
+
+### O que mudou
+
+- **Permissões (RBAC)**: seis papéis de acesso substituem o antigo
+  `cliente`/`administrador` único — ver `SEGURANCA.md` e
+  `src/lib/permissions.ts`.
+- **Criação de administradores**: script de terminal protegido
+  (`npm run create-admin`) para o primeiro admin, convites de uso único
+  pelo painel (`/admin/administradores`) para os seguintes — nunca uma
+  tela pública.
+- **`/admin/configuracoes`** ganhou abas: Informações da loja, Aparência,
+  Vendas, Entrega, Pagamentos (status apenas, nunca a chave secreta),
+  E-mails, Segurança (somente leitura) e Manutenção.
+- **Modo de manutenção** bloqueia a loja pública sem nunca bloquear
+  `/admin` nem os webhooks do Stripe.
+- **`/admin/atividades`** mostra o histórico de ações administrativas
+  sensíveis (quem fez o quê, quando, com que detalhes).
+- **`/admin/mensagens`** recebe as mensagens do formulário de contato
+  (agora com persistência real, proteção contra spam por honeypot e
+  status: Nova, Em atendimento, Aguardando cliente, Resolvida, Spam).
+- **Páginas legais** (`politica-de-privacidade`, `politica-de-cookies`,
+  `termos-de-uso`, `politica-de-entrega`, `trocas-e-devolucoes`) agora têm
+  conteúdo inicial real (não mais "conteúdo de exemplo") — ainda assim,
+  não é aconselhamento jurídico definitivo, ver aviso no topo de cada uma.
+- **Cabeçalhos de segurança** (CSP, X-Frame-Options, etc.) em
+  `next.config.ts`; páginas de erro/404 dedicadas
+  (`src/app/error.tsx`, `src/app/not-found.tsx`) que nunca expõem detalhes
+  internos.
+- **Consentimento de cookies** agora tem os três botões exigidos (Aceitar
+  todos / Recusar opcionais / Gerenciar preferências) e uma categoria
+  "Preferências" separada de Analytics/Marketing.
+- **Classificação de propriedade intelectual** por produto
+  (`products.ip_classification`), nunca padrão "oficialmente licenciado".
+- Documentação nova: `GUIA-INICIANTE.md`, `CONFIGURACAO-STRIPE.md`,
+  `CONFIGURACAO-SUPABASE.md`, `PUBLICACAO.md`, `BACKUP-E-RESTAURACAO.md`,
+  `SEGURANCA.md`, `CHECKLIST-LANCAMENTO.md`.
+
+## Arquivos criados/alterados no Prompt 6
+
+| Área | Arquivos principais |
+| --- | --- |
+| Banco de dados | `supabase/migrations/0005_security_rbac.sql` (papéis, convites, 2FA, mensagens, classificação de IP), `0006_legal_content.sql` |
+| Permissões | `src/lib/permissions.ts`, `src/lib/auth.ts` (`requirePermission`/`requirePrincipal`), `src/proxy.ts` |
+| Administradores | `src/lib/actions/admins.ts`, `src/lib/actions/accept-invite.ts`, `src/lib/admin-directory.ts`, `/admin/administradores`, `/convite-admin/[token]`, `scripts/create-admin.mjs` |
+| Configurações | `src/lib/actions/admin-settings.ts`, `src/components/admin/settings/SettingsTabs.tsx`, `/admin/configuracoes`, `src/lib/integration-status.ts` |
+| Atividades | `src/lib/actions/activity-log.ts`, `/admin/atividades` |
+| Mensagens | `src/lib/actions/contact.ts`, `src/lib/actions/messages.ts`, `/admin/mensagens` |
+| Segurança/erros | `next.config.ts`, `src/app/error.tsx`, `src/app/global-error.tsx`, `src/app/not-found.tsx`, `src/app/acesso-negado`, `src/app/manutencao`, `src/lib/logger.ts` |
+| Conteúdo legal | `src/lib/legal-content.ts`, `src/lib/pages.ts` |
+| E-mails novos | `passwordChangedEmail`, `adminInviteEmail`, `contactMessageReceivedEmail`, `lowStockAlertEmail` em `src/lib/email/templates.ts` |
+
+### Limitações conhecidas desta etapa
+
+- **2FA (TOTP)**: a tabela e a área de status existem, mas a tela de
+  ativação e a exigência do código no login **não foram implementadas** —
+  ver a seção "Autenticação em duas etapas" em `SEGURANCA.md` para o
+  porquê e como continuar.
+- **CRUD de produtos/categorias/cupons/banners**: as telas
+  `/admin/produtos`, `/admin/categorias`, `/admin/cupons` e
+  `/admin/banners` ainda são somente leitura (listagem) — cadastrar/editar
+  esses itens ainda depende do Table Editor do Supabase ou de uma etapa
+  futura de desenvolvimento. Isso já era assim antes do Prompt 6 e está
+  fora do escopo de uma revisão de segurança/polimento; a proteção de
+  acesso (RLS + papéis) já cobre essas tabelas mesmo sem a tela de edição.
+- **Editor de páginas institucionais**: não existe uma tela admin para
+  editar `custom_pages` (só a semente de conteúdo em SQL) — editar o
+  texto das páginas legais/institucionais depois do lançamento ainda
+  exige o Table Editor do Supabase.
+- **Envio automático de relatórios agendados**: a tela de agendamento salva
+  a preferência, mas nenhum cron real dispara o envio (ver `CRON_SECRET`
+  em `.env.example`).
+- **Rate limiting geral de API**: existe bloqueio específico por tentativas
+  de login (`login_attempts`), mas não um limitador de taxa genérico para
+  todas as rotas de API.

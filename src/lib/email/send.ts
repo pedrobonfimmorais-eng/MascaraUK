@@ -10,7 +10,9 @@ let cachedClient: Resend | null = null;
  * instead of throwing and breaking the order flow.
  */
 function getResendClient(): Resend | null {
-  const apiKey = process.env.RESEND_API_KEY;
+  // EMAIL_PROVIDER_API_KEY is the generic name documented in .env.example;
+  // RESEND_API_KEY is Resend's own convention. Either one works.
+  const apiKey = process.env.RESEND_API_KEY ?? process.env.EMAIL_PROVIDER_API_KEY;
   if (!apiKey) return null;
   if (!cachedClient) cachedClient = new Resend(apiKey);
   return cachedClient;

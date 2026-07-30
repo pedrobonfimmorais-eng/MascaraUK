@@ -6,7 +6,6 @@ const staticRoutes = [
   "",
   "/produtos",
   "/categorias",
-  "/carrinho",
   "/login",
   "/cadastro",
   "/recuperar-senha",

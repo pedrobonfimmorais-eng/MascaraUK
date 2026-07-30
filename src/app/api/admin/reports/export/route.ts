@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildReport } from "@/lib/reports/build";
 import { tableToCsv, tableToXlsxBuffer } from "@/lib/reports/export";
@@ -16,7 +16,7 @@ function isReportType(value: string | null): value is ReportType {
  * requirements for analytics exports.
  */
 export async function GET(request: Request) {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("reports.export");
   if (!admin) {
     return NextResponse.json({ error: "Acesso não autorizado." }, { status: 401 });
   }

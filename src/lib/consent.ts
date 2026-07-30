@@ -10,13 +10,14 @@ export const COOKIE_CONSENT_MAX_AGE_SECONDS = 365 * 24 * 60 * 60;
 
 export interface ConsentPreferences {
   essential: true;
+  preferences: boolean;
   analytics: boolean;
   marketing: boolean;
   decidedAt: string;
 }
 
 export function defaultConsent(): ConsentPreferences {
-  return { essential: true, analytics: false, marketing: false, decidedAt: "" };
+  return { essential: true, preferences: false, analytics: false, marketing: false, decidedAt: "" };
 }
 
 export function parseConsentCookie(rawValue: string | undefined | null): ConsentPreferences | null {
@@ -26,6 +27,7 @@ export function parseConsentCookie(rawValue: string | undefined | null): Consent
     if (typeof parsed !== "object" || parsed === null) return null;
     return {
       essential: true,
+      preferences: Boolean(parsed.preferences),
       analytics: Boolean(parsed.analytics),
       marketing: Boolean(parsed.marketing),
       decidedAt: typeof parsed.decidedAt === "string" ? parsed.decidedAt : "",

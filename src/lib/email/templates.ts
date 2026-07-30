@@ -309,3 +309,55 @@ export function adminPaymentErrorEmail(orderNumber: string, reason: string, admi
     ),
   };
 }
+
+export function passwordChangedEmail(customerName: string, changedAtLabel: string, supportUrl: string) {
+  return {
+    subject: "Sua senha foi alterada",
+    html: layout(
+      "Senha alterada",
+      `<p style="font-size:14px;">Olá, ${customerName}. Sua senha foi alterada em ${changedAtLabel}.</p>
+       <p style="font-size:14px;color:#374151;">Se foi você, nenhuma ação é necessária. Se não reconhece esta alteração, entre em contato com o suporte imediatamente.</p>
+       ${ctaButton("Falar com o suporte", supportUrl)}`
+    ),
+  };
+}
+
+export function adminInviteEmail(params: {
+  inviterName: string;
+  roleLabel: string;
+  acceptUrl: string;
+  expiresAtLabel: string;
+}) {
+  return {
+    subject: "Convite para administrar a loja",
+    html: layout(
+      "Convite de administrador",
+      `<p style="font-size:14px;">${params.inviterName} convidou você para acessar o painel administrativo da loja com o papel de <strong>${params.roleLabel}</strong>.</p>
+       <p style="font-size:14px;color:#374151;">Este convite expira em ${params.expiresAtLabel} e só pode ser usado uma vez.</p>
+       ${ctaButton("Aceitar convite e criar senha", params.acceptUrl)}
+       <p style="font-size:12px;color:#9ca3af;margin-top:16px;">Se você não esperava este convite, ignore este e-mail.</p>`
+    ),
+  };
+}
+
+export function contactMessageReceivedEmail(customerName: string, subject: string) {
+  return {
+    subject: "Recebemos sua mensagem",
+    html: layout(
+      "Mensagem recebida",
+      `<p style="font-size:14px;">Olá, ${customerName}. Recebemos sua mensagem sobre "${subject}" e nossa equipe vai responder em breve.</p>
+       <p style="font-size:14px;color:#374151;">Este é um e-mail automático de confirmação — não é necessário responder a ele.</p>`
+    ),
+  };
+}
+
+export function lowStockAlertEmail(params: { productName: string; currentQuantity: number; threshold: number; adminUrl: string }) {
+  return {
+    subject: `Estoque baixo: ${params.productName}`,
+    html: layout(
+      "Alerta de estoque baixo",
+      `<p style="font-size:14px;">O produto <strong>${params.productName}</strong> está com ${params.currentQuantity} unidade(s) em estoque, abaixo do mínimo configurado (${params.threshold}).</p>
+       ${ctaButton("Ver estoque no painel", params.adminUrl)}`
+    ),
+  };
+}

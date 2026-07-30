@@ -45,13 +45,14 @@ export function CookieConsentBanner() {
 
   const [dismissed, setDismissed] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [preferences, setPreferences] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [marketing, setMarketing] = useState(false);
 
   const visible = !hasStoredConsent && !dismissed;
 
   function acceptAll() {
-    writeConsent({ essential: true, analytics: true, marketing: true, decidedAt: new Date().toISOString() });
+    writeConsent({ essential: true, preferences: true, analytics: true, marketing: true, decidedAt: new Date().toISOString() });
     setDismissed(true);
   }
 
@@ -61,7 +62,7 @@ export function CookieConsentBanner() {
   }
 
   function savePreferences() {
-    writeConsent({ essential: true, analytics, marketing, decidedAt: new Date().toISOString() });
+    writeConsent({ essential: true, preferences, analytics, marketing, decidedAt: new Date().toISOString() });
     setDismissed(true);
   }
 
@@ -83,6 +84,10 @@ export function CookieConsentBanner() {
             <label className="flex items-center gap-2 text-gray-500">
               <input type="checkbox" checked disabled />
               {t("consent.essential")}
+            </label>
+            <label className="flex items-center gap-2 text-gray-700">
+              <input type="checkbox" checked={preferences} onChange={(e) => setPreferences(e.target.checked)} />
+              {t("consent.preferences")}
             </label>
             <label className="flex items-center gap-2 text-gray-700">
               <input type="checkbox" checked={analytics} onChange={(e) => setAnalytics(e.target.checked)} />

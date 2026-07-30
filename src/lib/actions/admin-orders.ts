@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logAdminAction } from "@/lib/actions/activity-log";
 import { getStripeClient } from "@/lib/stripe/server";
 import {
   sendTemplateEmail,
@@ -60,7 +62,7 @@ export async function updateOrderStatus(
   newStatus: OrderStatus,
   note?: string
 ): Promise<AdminOrderActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("orders.manage");
   if (!admin) return UNAUTHORIZED;
 
   const supabaseAdmin = createAdminClient();
@@ -82,6 +84,13 @@ export async function updateOrderStatus(
     new_status: newStatus,
     note: note ?? null,
     admin_id: admin.id,
+  });
+  await logAdminAction({
+    adminId: admin.id,
+    action: "pedido_status_alterado",
+    entityType: "order",
+    entityId: order.id,
+    details: { orderNumber: order.order_number, previousStatus: order.status, newStatus },
   });
 
   const trackingUrl = order.user_id ? `${siteUrl()}/minha-conta/pedidos/${order.id}` : `${siteUrl()}/`;
@@ -135,7 +144,7 @@ export async function addTrackingInfo(
   orderId: string,
   data: { carrier: string; code: string; url: string }
 ): Promise<AdminOrderActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("orders.manage");
   if (!admin) return UNAUTHORIZED;
 
   if (!data.code.trim()) return { ok: false, message: "Informe o código de rastreio." };
@@ -163,6 +172,13 @@ export async function addTrackingInfo(
     new_status: updates.status ?? order.status,
     note: `${data.carrier ? `${data.carrier} — ` : ""}${data.code}`,
     admin_id: admin.id,
+  });
+  await logAdminAction({
+    adminId: admin.id,
+    action: "pedido_rastreio_adicionado",
+    entityType: "order",
+    entityId: order.id,
+    details: { orderNumber: order.order_number, carrier: data.carrier, code: data.code },
   });
 
   const trackingUrl = order.user_id ? `${siteUrl()}/minha-conta/pedidos/${order.id}` : `${siteUrl()}/`;
@@ -192,7 +208,7 @@ export async function addTrackingInfo(
 }
 
 export async function addInternalNote(orderId: string, note: string): Promise<AdminOrderActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("orders.manage");
   if (!admin) return UNAUTHORIZED;
   if (!note.trim()) return { ok: false, message: "Escreva uma observação." };
 
@@ -250,7 +266,7 @@ export async function cancelOrder(
   orderId: string,
   options: { reason: string; restock: boolean }
 ): Promise<AdminOrderActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("orders.manage");
   if (!admin) return UNAUTHORIZED;
 
   const supabaseAdmin = createAdminClient();
@@ -259,6 +275,12 @@ export async function cancelOrder(
 
   if (["enviado", "entregue", "cancelado", "devolvido"].includes(order.status)) {
     return { ok: false, message: "Pedidos enviados não podem ser cancelados diretamente." };
+  }
+
+  // Cancelling a paid order triggers a real refund, which is reserved to
+  // ADMINISTRADOR_PRINCIPAL even for staff who otherwise manage orders.
+  if (order.payment_status === "pago" && !hasPermission(admin, "orders.refund")) {
+    return { ok: false, message: "Este pedido já foi pago. Somente o administrador principal pode cancelar e reembolsar." };
   }
 
   if (order.payment_status === "pago") {
@@ -305,6 +327,13 @@ export async function cancelOrder(
     note: options.reason,
     admin_id: admin.id,
   });
+  await logAdminAction({
+    adminId: admin.id,
+    action: "pedido_cancelado",
+    entityType: "order",
+    entityId: order.id,
+    details: { orderNumber: order.order_number, reason: options.reason, restock: options.restock },
+  });
 
   const trackingUrl = order.user_id ? `${siteUrl()}/minha-conta/pedidos/${order.id}` : `${siteUrl()}/`;
   await sendTemplateEmail(
@@ -321,7 +350,7 @@ export async function refundOrder(
   orderId: string,
   options: { amount: number; reason: string; note: string; restock: boolean }
 ): Promise<AdminOrderActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("orders.refund");
   if (!admin) return UNAUTHORIZED;
 
   if (options.amount <= 0) return { ok: false, message: "Informe um valor válido para o reembolso." };
@@ -386,13 +415,20 @@ export async function refundOrder(
     note: `Reembolso de ${options.amount.toFixed(2)} solicitado. Motivo: ${options.reason}.`,
     admin_id: admin.id,
   });
+  await logAdminAction({
+    adminId: admin.id,
+    action: "pedido_reembolsado",
+    entityType: "order",
+    entityId: order.id,
+    details: { orderNumber: order.order_number, amount: options.amount, reason: options.reason },
+  });
 
   revalidateOrder(order.id);
   return { ok: true, message: "Reembolso enviado ao Stripe. O status será confirmado automaticamente." };
 }
 
 export async function resendOrderConfirmationEmail(orderId: string): Promise<AdminOrderActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("orders.manage");
   if (!admin) return UNAUTHORIZED;
 
   const supabaseAdmin = createAdminClient();
@@ -423,7 +459,7 @@ export async function resendOrderConfirmationEmail(orderId: string): Promise<Adm
 }
 
 export async function resendTrackingEmail(orderId: string): Promise<AdminOrderActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("orders.manage");
   if (!admin) return UNAUTHORIZED;
 
   const supabaseAdmin = createAdminClient();

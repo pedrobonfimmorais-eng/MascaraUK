@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AdditionalCost } from "@/types/database";
 
@@ -25,7 +25,7 @@ export async function createAdditionalCost(
   _prevState: CostActionResult,
   formData: FormData
 ): Promise<CostActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("analytics.view");
   if (!admin) return { ok: false, message: "Acesso não autorizado." };
 
   const name = String(formData.get("name") ?? "").trim();
@@ -62,7 +62,7 @@ export async function updateAdditionalCost(
   _prevState: CostActionResult,
   formData: FormData
 ): Promise<CostActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("analytics.view");
   if (!admin) return { ok: false, message: "Acesso não autorizado." };
 
   const name = String(formData.get("name") ?? "").trim();
@@ -98,7 +98,7 @@ export async function updateAdditionalCost(
 }
 
 export async function deleteAdditionalCost(costId: string): Promise<void> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("analytics.view");
   if (!admin) return;
 
   const supabaseAdmin = createAdminClient();
@@ -107,7 +107,7 @@ export async function deleteAdditionalCost(costId: string): Promise<void> {
 }
 
 export async function updateProductCostPrice(productId: string, costPrice: number | null): Promise<CostActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("analytics.view");
   if (!admin) return { ok: false, message: "Acesso não autorizado." };
 
   if (costPrice != null && costPrice < 0) return { ok: false, message: "Valor inválido." };

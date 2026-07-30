@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AlertStatus } from "@/types/database";
 
 async function updateAlertStatus(alertId: string, status: AlertStatus): Promise<void> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("analytics.view");
   if (!admin) return;
 
   const supabaseAdmin = createAdminClient();

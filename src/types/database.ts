@@ -13,7 +13,23 @@
  * (or --local when using the Supabase CLI locally) to keep it 100% in sync.
  */
 
-export type UserRole = "cliente" | "administrador";
+/**
+ * cliente: só a própria conta/carrinho/pedidos.
+ * estoque: produtos, estoque, movimentações, preparação de pedidos — nunca pagamentos/clientes/admins.
+ * atendimento: clientes, pedidos, mensagens, notas, rastreamento — nunca chaves/pagamentos/criação de admin.
+ * gerente: produtos, pedidos, promoções, analytics — nunca segurança/pagamentos/admins.
+ * administrador: acesso conforme permissões concedidas (profiles.permissions) — nunca segurança/pagamentos/refund/criação de admin.
+ * administrador_principal: acesso total, incl. criação de admins, segurança, pagamentos e reembolsos.
+ */
+export type UserRole = "cliente" | "estoque" | "atendimento" | "gerente" | "administrador" | "administrador_principal";
+
+export type IpClassification =
+  | "produto_original_loja"
+  | "produto_generico_inspirado"
+  | "produto_oficialmente_licenciado"
+  | "produto_terceiro_autorizado";
+
+export type MessageStatus = "nova" | "em_atendimento" | "aguardando_cliente" | "resolvida" | "spam";
 
 /** Status de ENVIO/preparação do pedido — nunca deve ser confundido com o pagamento. */
 export type OrderStatus =
@@ -53,9 +69,49 @@ export type Profile = {
   last_name: string | null;
   phone: string | null;
   role: UserRole;
+  /** Extra capabilities granted to an "administrador" account (see src/lib/permissions.ts). Ignored for every other role. */
+  permissions: Record<string, boolean>;
   marketing_opt_in: boolean;
   terms_accepted_at: string | null;
   birth_date: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminInvite = {
+  id: string;
+  email: string;
+  role: UserRole;
+  permissions: Record<string, boolean>;
+  token: string;
+  invited_by: string | null;
+  expires_at: string;
+  used_at: string | null;
+  created_at: string;
+};
+
+export type AdminTwoFactor = {
+  user_id: string;
+  secret: string;
+  enabled: boolean;
+  recovery_codes: string[];
+  recovery_codes_used_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Message = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  subject: string;
+  message: string;
+  order_number: string | null;
+  status: MessageStatus;
+  admin_note: string | null;
+  handled_by: string | null;
+  replied_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -134,6 +190,7 @@ export type Product = {
   avg_rating: number;
   rating_count: number;
   cost_price: number | null;
+  ip_classification: IpClassification;
   created_at: string;
   updated_at: string;
 };
@@ -536,6 +593,9 @@ export type Database = {
       search_queries: TableDef<SearchQuery>;
       alerts: TableDef<Alert>;
       report_schedules: TableDef<ReportSchedule>;
+      admin_invites: TableDef<AdminInvite>;
+      admin_2fa: TableDef<AdminTwoFactor>;
+      messages: TableDef<Message>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -583,6 +643,7 @@ export type Database = {
       payment_status: PaymentStatus;
       discount_type: DiscountType;
       stock_movement_reason: StockMovementReason;
+      ip_classification: IpClassification;
     };
   };
 };

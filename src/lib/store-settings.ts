@@ -14,6 +14,16 @@ export interface StoreSettings {
   footerText: string;
   homeHeroTitle: string;
   homeHeroSubtitle: string;
+  /** CNPJ/CPF, entirely optional — blank until the owner fills it in, never invented. */
+  taxId: string;
+  businessAddress: string;
+  allowGuestCheckout: boolean;
+  emailFromName: string;
+  /** Store-level switch for the marketing e-mail feature. Never defaults to true — each customer's own opt-in (profiles.marketing_opt_in) still applies on top of this. */
+  marketingEmailsEnabled: boolean;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  maintenanceEstimatedReturn: string;
 }
 
 function defaults(): StoreSettings {
@@ -30,6 +40,14 @@ function defaults(): StoreSettings {
     footerText: siteConfig.footerText,
     homeHeroTitle: "",
     homeHeroSubtitle: "",
+    taxId: "",
+    businessAddress: "",
+    allowGuestCheckout: true,
+    emailFromName: siteConfig.name,
+    marketingEmailsEnabled: false,
+    maintenanceMode: false,
+    maintenanceMessage: "",
+    maintenanceEstimatedReturn: "",
   };
 }
 
@@ -92,6 +110,14 @@ export async function getStoreSettings(): Promise<StoreSettings> {
       footerText: (map.get("footer_text") as string) ?? fallback.footerText,
       homeHeroTitle: (map.get("home_hero_title") as string) ?? fallback.homeHeroTitle,
       homeHeroSubtitle: (map.get("home_hero_subtitle") as string) ?? fallback.homeHeroSubtitle,
+      taxId: (map.get("tax_id") as string) ?? fallback.taxId,
+      businessAddress: (map.get("business_address") as string) ?? fallback.businessAddress,
+      allowGuestCheckout: (map.get("allow_guest_checkout") as boolean | undefined) ?? fallback.allowGuestCheckout,
+      emailFromName: (map.get("email_from_name") as string) ?? fallback.emailFromName,
+      marketingEmailsEnabled: (map.get("marketing_emails_enabled") as boolean | undefined) ?? fallback.marketingEmailsEnabled,
+      maintenanceMode: (map.get("maintenance_mode") as boolean | undefined) ?? fallback.maintenanceMode,
+      maintenanceMessage: (map.get("maintenance_message") as string) ?? fallback.maintenanceMessage,
+      maintenanceEstimatedReturn: (map.get("maintenance_estimated_return") as string) ?? fallback.maintenanceEstimatedReturn,
     };
   } catch {
     return fallback;

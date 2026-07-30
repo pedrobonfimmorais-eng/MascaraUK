@@ -39,7 +39,7 @@ export interface ShippingRuleOption {
   estimate_days_max: number;
 }
 
-interface ShippingRules {
+export interface ShippingRules {
   free_shipping_threshold: number;
   default_rate: number;
   default_estimate_days_min: number;
@@ -92,7 +92,7 @@ const FALLBACK_SHIPPING_RULES: ShippingRules = {
   ],
 };
 
-async function getShippingRules(): Promise<ShippingRules> {
+export async function getShippingRules(): Promise<ShippingRules> {
   if (!isSupabaseConfigured()) return FALLBACK_SHIPPING_RULES;
 
   try {

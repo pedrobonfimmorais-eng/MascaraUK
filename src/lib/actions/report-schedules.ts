@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ReportSchedule } from "@/types/database";
 
@@ -26,7 +26,7 @@ export async function createReportSchedule(
   _prevState: ScheduleActionResult,
   formData: FormData
 ): Promise<ScheduleActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("reports.export");
   if (!admin) return { ok: false, message: "Acesso não autorizado." };
 
   const reportType = String(formData.get("reportType") ?? "").trim();
@@ -61,7 +61,7 @@ export async function createReportSchedule(
 }
 
 export async function toggleReportSchedule(scheduleId: string, isActive: boolean): Promise<void> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("reports.export");
   if (!admin) return;
 
   const supabaseAdmin = createAdminClient();
@@ -70,7 +70,7 @@ export async function toggleReportSchedule(scheduleId: string, isActive: boolean
 }
 
 export async function deleteReportSchedule(scheduleId: string): Promise<void> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("reports.export");
   if (!admin) return;
 
   const supabaseAdmin = createAdminClient();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { Button } from "@/components/ui/Button";
 import {
   updateOrderStatus,
@@ -61,14 +61,16 @@ export function AdminOrderActions({
     if (!snapshot) return;
     const text = [
       snapshot.recipient_name,
-      `${snapshot.street}, ${snapshot.number}${snapshot.complement ? ` — ${snapshot.complement}` : ""}`,
-      `${snapshot.neighborhood} — ${snapshot.city}/${snapshot.state}`,
-      `CEP ${snapshot.zip_code}`,
+      snapshot.company_name,
+      `${snapshot.address_line1 ?? ""}${snapshot.address_line2 ? `, ${snapshot.address_line2}` : ""}`,
+      `${snapshot.town_city ?? ""}${snapshot.county ? `, ${snapshot.county}` : ""}`,
+      snapshot.postcode,
+      snapshot.country,
     ]
       .filter(Boolean)
       .join("\n");
     navigator.clipboard.writeText(text);
-    setMessage(t("admin.orders.addressCopied"));
+    setMessage(ta("admin.orders.addressCopied"));
   }
 
   function handleExport() {
@@ -89,7 +91,7 @@ export function AdminOrderActions({
             size="sm"
             disabled={isPending}
             onClick={() => {
-              if (confirm(`${t("admin.orders.confirmStatusChange")}: ${nextAction.label}?`)) {
+              if (confirm(`${ta("admin.orders.confirmStatusChange")}: ${nextAction.label}?`)) {
                 run(() => updateOrderStatus(order.id, nextAction.next));
               }
             }}
@@ -99,29 +101,29 @@ export function AdminOrderActions({
         )}
         {canCancel && (
           <Button size="sm" variant="outline" className="text-red-600" onClick={() => setShowCancelForm((v) => !v)}>
-            {t("admin.orders.cancelOrder")}
+            {ta("admin.orders.cancelOrder")}
           </Button>
         )}
         {canRefund && (
           <Button size="sm" variant="outline" onClick={() => setShowRefundForm((v) => !v)}>
-            {t("admin.orders.refund")}
+            {ta("admin.orders.refund")}
           </Button>
         )}
         <Button size="sm" variant="ghost" onClick={handleCopyAddress}>
-          {t("admin.orders.copyAddress")}
+          {ta("admin.orders.copyAddress")}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => window.print()}>
-          {t("admin.orders.print")}
+          {ta("admin.orders.print")}
         </Button>
         <Button size="sm" variant="ghost" onClick={handleExport}>
-          {t("admin.orders.export")}
+          {ta("admin.orders.export")}
         </Button>
         <Button size="sm" variant="ghost" disabled={isPending} onClick={() => run(() => resendOrderConfirmationEmail(order.id))}>
-          {t("admin.orders.resendConfirmation")}
+          {ta("admin.orders.resendConfirmation")}
         </Button>
         {order.tracking_code && (
           <Button size="sm" variant="ghost" disabled={isPending} onClick={() => run(() => resendTrackingEmail(order.id))}>
-            {t("admin.orders.resendTracking")}
+            {ta("admin.orders.resendTracking")}
           </Button>
         )}
       </div>
@@ -130,9 +132,9 @@ export function AdminOrderActions({
 
       {showCancelForm && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <h3 className="mb-2 font-semibold text-red-700">{t("admin.orders.cancelOrder")}</h3>
+          <h3 className="mb-2 font-semibold text-red-700">{ta("admin.orders.cancelOrder")}</h3>
           <label className="flex flex-col gap-1 text-sm text-gray-700">
-            {t("admin.orders.reason")}
+            {ta("admin.orders.reason")}
             <input
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
@@ -141,29 +143,29 @@ export function AdminOrderActions({
           </label>
           <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
             <input type="checkbox" checked={cancelRestock} onChange={(e) => setCancelRestock(e.target.checked)} />
-            {t("admin.orders.returnToStock")}
+            {ta("admin.orders.returnToStock")}
           </label>
           <Button
             size="sm"
             className="mt-3"
             disabled={isPending}
             onClick={() => {
-              if (confirm(t("admin.orders.confirmCancel"))) {
+              if (confirm(ta("admin.orders.confirmCancel"))) {
                 run(() => cancelOrder(order.id, { reason: cancelReason, restock: cancelRestock }));
               }
             }}
           >
-            {t("common.confirm")}
+            {ta("common.confirm")}
           </Button>
         </div>
       )}
 
       {showRefundForm && (
         <div className="rounded-lg border border-gray-200 p-4">
-          <h3 className="mb-2 font-semibold text-brand-secondary">{t("admin.orders.refund")}</h3>
+          <h3 className="mb-2 font-semibold text-brand-secondary">{ta("admin.orders.refund")}</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm text-gray-700">
-              {t("admin.orders.refundAmount")}
+              {ta("admin.orders.refundAmount")}
               <input
                 type="number"
                 step="0.01"
@@ -175,7 +177,7 @@ export function AdminOrderActions({
               />
             </label>
             <label className="flex flex-col gap-1 text-sm text-gray-700">
-              {t("admin.orders.reason")}
+              {ta("admin.orders.reason")}
               <input
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
@@ -184,7 +186,7 @@ export function AdminOrderActions({
             </label>
           </div>
           <label className="mt-2 flex flex-col gap-1 text-sm text-gray-700">
-            {t("admin.orders.internalNote")}
+            {ta("admin.orders.internalNote")}
             <textarea
               value={refundNote}
               onChange={(e) => setRefundNote(e.target.value)}
@@ -194,14 +196,14 @@ export function AdminOrderActions({
           </label>
           <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
             <input type="checkbox" checked={refundRestock} onChange={(e) => setRefundRestock(e.target.checked)} />
-            {t("admin.orders.returnToStock")}
+            {ta("admin.orders.returnToStock")}
           </label>
           <Button
             size="sm"
             className="mt-3"
             disabled={isPending}
             onClick={() => {
-              if (confirm(t("admin.orders.confirmRefund"))) {
+              if (confirm(ta("admin.orders.confirmRefund"))) {
                 run(() =>
                   refundOrder(order.id, {
                     amount: parseFloat(refundAmount) || 0,
@@ -213,16 +215,16 @@ export function AdminOrderActions({
               }
             }}
           >
-            {t("common.confirm")}
+            {ta("common.confirm")}
           </Button>
         </div>
       )}
 
       <div className="rounded-lg border border-gray-200 p-4">
-        <h3 className="mb-2 font-semibold text-brand-secondary">{t("admin.orders.tracking")}</h3>
+        <h3 className="mb-2 font-semibold text-brand-secondary">{ta("admin.orders.tracking")}</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="flex flex-col gap-1 text-sm text-gray-700">
-            {t("admin.orders.carrier")}
+            {ta("admin.orders.carrier")}
             <input
               value={trackingCarrier}
               onChange={(e) => setTrackingCarrier(e.target.value)}
@@ -230,7 +232,7 @@ export function AdminOrderActions({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm text-gray-700">
-            {t("admin.orders.trackingCode")}
+            {ta("admin.orders.trackingCode")}
             <input
               value={trackingCode}
               onChange={(e) => setTrackingCode(e.target.value)}
@@ -238,7 +240,7 @@ export function AdminOrderActions({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm text-gray-700">
-            {t("admin.orders.trackingUrl")}
+            {ta("admin.orders.trackingUrl")}
             <input
               value={trackingUrl}
               onChange={(e) => setTrackingUrl(e.target.value)}
@@ -254,14 +256,14 @@ export function AdminOrderActions({
             run(() => addTrackingInfo(order.id, { carrier: trackingCarrier, code: trackingCode, url: trackingUrl }))
           }
         >
-          {t("common.save")}
+          {ta("common.save")}
         </Button>
       </div>
 
       <div className="rounded-lg border border-gray-200 p-4">
-        <h3 className="mb-2 font-semibold text-brand-secondary">{t("admin.orders.internalNotes")}</h3>
+        <h3 className="mb-2 font-semibold text-brand-secondary">{ta("admin.orders.internalNotes")}</h3>
         <div className="mb-3 flex flex-col gap-2">
-          {notes.length === 0 && <p className="text-sm text-gray-500">{t("admin.orders.noNotes")}</p>}
+          {notes.length === 0 && <p className="text-sm text-gray-500">{ta("admin.orders.noNotes")}</p>}
           {notes.map((event) => (
             <div key={event.id} className="rounded-lg bg-gray-50 p-2 text-sm text-gray-700">
               <p>{event.note}</p>
@@ -273,7 +275,7 @@ export function AdminOrderActions({
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
           rows={2}
-          placeholder={t("admin.orders.addNotePlaceholder")}
+          placeholder={ta("admin.orders.addNotePlaceholder")}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
         <Button
@@ -288,7 +290,7 @@ export function AdminOrderActions({
             })
           }
         >
-          {t("admin.orders.addNote")}
+          {ta("admin.orders.addNote")}
         </Button>
       </div>
     </div>

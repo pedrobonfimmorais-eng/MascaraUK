@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { sendTemplateEmail, contactMessageReceivedEmail } from "@/lib/email";
+import { t } from "@/i18n";
 
 export interface ContactFormState {
   error: string | null;
@@ -35,11 +36,11 @@ export async function submitContactMessage(
   const orderNumber = String(formData.get("orderNumber") ?? "").trim() || null;
 
   if (!name || !email || !email.includes("@") || !subject || !message) {
-    return { error: "Preencha todos os campos obrigatórios com um e-mail válido." };
+    return { error: t("contact.requiredFieldsError") };
   }
 
   if (message.length > 5000) {
-    return { error: "Mensagem muito longa." };
+    return { error: t("contact.messageTooLong") };
   }
 
   const supabase = await createClient();
@@ -53,7 +54,7 @@ export async function submitContactMessage(
   });
 
   if (error) {
-    return { error: "Não foi possível enviar sua mensagem. Tente novamente em instantes." };
+    return { error: t("contact.sendFailed") };
   }
 
   await sendTemplateEmail(email, contactMessageReceivedEmail(name, subject));

@@ -25,9 +25,7 @@ export function ForgotPasswordForm() {
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
       {state.success && (
-        <p className="text-sm text-emerald-700">
-          Se o e-mail existir na nossa base, enviaremos o link de recuperação em instantes.
-        </p>
+        <p className="text-sm text-emerald-700">{t("auth.forgotPasswordSuccess")}</p>
       )}
 
       <Button type="submit" size="lg" disabled={isPending} className="w-full">

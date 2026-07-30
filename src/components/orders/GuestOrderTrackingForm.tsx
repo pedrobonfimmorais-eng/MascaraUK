@@ -22,7 +22,7 @@ export function GuestOrderTrackingForm() {
           required
           name="orderNumber"
           type="text"
-          placeholder="PED-000001"
+          placeholder="ORD-000001"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>

@@ -16,18 +16,18 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   }, [error, errorId]);
 
   return (
-    <html lang="pt-BR">
+    <html lang="en-GB">
       <body>
         <div style={{ display: "flex", minHeight: "100vh", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "1rem", textAlign: "center", padding: "2rem" }}>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 700 }}>Algo deu errado</h1>
-          <p>Ocorreu um erro inesperado. Nossa equipe já foi notificada.</p>
-          <p style={{ fontSize: "0.75rem", color: "#888" }}>Código do erro: {errorId}</p>
+          <h1 style={{ fontSize: "1.5rem", fontWeight: 700 }}>Something went wrong</h1>
+          <p>An unexpected error occurred. Our team has been notified.</p>
+          <p style={{ fontSize: "0.75rem", color: "#888" }}>Error code: {errorId}</p>
           <button
             type="button"
             onClick={() => reset()}
             style={{ padding: "0.625rem 1.25rem", borderRadius: "0.5rem", background: "#111", color: "#fff", cursor: "pointer" }}
           >
-            Tentar novamente
+            Try again
           </button>
         </div>
       </body>

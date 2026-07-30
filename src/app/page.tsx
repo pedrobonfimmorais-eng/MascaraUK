@@ -20,9 +20,9 @@ import { getRecentApprovedReviews } from "@/lib/reviews";
 import { getStoreSettings } from "@/lib/store-settings";
 
 const miniFaq = [
-  { question: "Qual o prazo de entrega?", answer: "Calculado no carrinho a partir do seu CEP." },
-  { question: "Como funciona a troca?", answer: "Você tem até 7 dias após o recebimento para solicitar." },
-  { question: "O pagamento é seguro?", answer: "Sim, processado em ambiente protegido via Stripe." },
+  { question: "How long does delivery take?", answer: "Calculated in your basket from your postcode." },
+  { question: "How do returns work?", answer: "You can request one within the return period after receiving your order." },
+  { question: "Is payment secure?", answer: "Yes, all payments are processed securely through Stripe." },
 ];
 
 export default async function HomePage() {

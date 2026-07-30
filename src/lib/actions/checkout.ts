@@ -2,12 +2,14 @@
 
 import { randomBytes } from "crypto";
 import { redirect } from "next/navigation";
+import { t } from "@/i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
 import { getValidatedCart } from "@/lib/cart/cart-data";
-import { getStoreCurrency } from "@/lib/store-settings";
+import { getStoreCurrency, getServedCountries } from "@/lib/store-settings";
 import { getStripeClient } from "@/lib/stripe/server";
 import { sendTemplateEmail, orderReceivedEmail } from "@/lib/email";
+import { isValidUkPostcode, normalisePostcode } from "@/lib/uk-address";
 import type { AddressSnapshot } from "@/types/order-snapshots";
 
 export interface CheckoutActionState {
@@ -16,41 +18,28 @@ export interface CheckoutActionState {
 
 const CHECKOUT_SESSION_MINUTES = 40;
 
-function digitsOnly(value: string): string {
-  return value.replace(/\D/g, "");
-}
-
 function readAddress(formData: FormData, prefix: string): AddressSnapshot {
   return {
     recipientName: String(formData.get(`${prefix}RecipientName`) ?? "").trim(),
+    companyName: String(formData.get(`${prefix}CompanyName`) ?? "").trim() || null,
     phone: String(formData.get(`${prefix}Phone`) ?? "").trim(),
-    zipCode: digitsOnly(String(formData.get(`${prefix}ZipCode`) ?? "")),
-    street: String(formData.get(`${prefix}Street`) ?? "").trim(),
-    number: String(formData.get(`${prefix}Number`) ?? "").trim(),
-    complement: String(formData.get(`${prefix}Complement`) ?? "").trim() || null,
-    neighborhood: String(formData.get(`${prefix}Neighborhood`) ?? "").trim(),
-    city: String(formData.get(`${prefix}City`) ?? "").trim(),
-    state: String(formData.get(`${prefix}State`) ?? "").trim(),
-    country: String(formData.get(`${prefix}Country`) ?? "BR").trim() || "BR",
-    reference: String(formData.get(`${prefix}Reference`) ?? "").trim() || null,
+    addressLine1: String(formData.get(`${prefix}AddressLine1`) ?? "").trim(),
+    addressLine2: String(formData.get(`${prefix}AddressLine2`) ?? "").trim() || null,
+    townCity: String(formData.get(`${prefix}TownCity`) ?? "").trim(),
+    county: String(formData.get(`${prefix}County`) ?? "").trim() || null,
+    postcode: normalisePostcode(String(formData.get(`${prefix}Postcode`) ?? "")),
+    country: String(formData.get(`${prefix}Country`) ?? "United Kingdom").trim() || "United Kingdom",
+    deliveryInstructions: String(formData.get(`${prefix}DeliveryInstructions`) ?? "").trim() || null,
   };
 }
 
-/** Never invents a missing address field — every required part must be present. */
+/** Never invents a missing address field — every required part must be present. County is optional, postcode is required. */
 function validateAddress(address: AddressSnapshot): string | null {
-  if (
-    !address.recipientName ||
-    !address.phone ||
-    !address.street ||
-    !address.number ||
-    !address.neighborhood ||
-    !address.city ||
-    !address.state
-  ) {
-    return "Preencha todos os campos obrigatórios do endereço.";
+  if (!address.recipientName || !address.phone || !address.addressLine1 || !address.townCity || !address.country) {
+    return t("checkout.addressRequired");
   }
-  if (address.zipCode.length !== 8) {
-    return "Digite um CEP válido com 8 dígitos.";
+  if (!isValidUkPostcode(address.postcode)) {
+    return t("checkout.invalidZipCode");
   }
   return null;
 }
@@ -58,16 +47,15 @@ function validateAddress(address: AddressSnapshot): string | null {
 function formatAddressForDelivery(address: AddressSnapshot) {
   return {
     recipient_name: address.recipientName,
+    company_name: address.companyName,
     phone: address.phone,
-    zip_code: address.zipCode,
-    street: address.street,
-    number: address.number,
-    complement: address.complement,
-    neighborhood: address.neighborhood,
-    city: address.city,
-    state: address.state,
+    address_line1: address.addressLine1,
+    address_line2: address.addressLine2,
+    town_city: address.townCity,
+    county: address.county,
+    postcode: address.postcode,
     country: address.country,
-    reference: address.reference,
+    delivery_instructions: address.deliveryInstructions,
   };
 }
 
@@ -100,18 +88,18 @@ export async function submitCheckout(
   const cart = await getValidatedCart();
 
   if (cart.items.length === 0) {
-    return { error: "Seu carrinho está vazio." };
+    return { error: t("cart.empty") };
   }
   if (cart.hasBlockingIssues) {
     return {
-      error: "Há produtos indisponíveis ou sem estoque suficiente no seu carrinho. Volte ao carrinho para revisar.",
+      error: t("cart.blockingIssuesNotice"),
     };
   }
   if (!cart.shippingOptionId) {
-    return { error: "Selecione uma forma de entrega." };
+    return { error: t("checkout.shippingRequired") };
   }
   if (formData.get("acceptTerms") !== "on") {
-    return { error: "É necessário confirmar que você leu e aceita os termos para concluir a compra." };
+    return { error: t("checkout.termsAcceptanceRequired") };
   }
 
   const user = await getCurrentUser();
@@ -123,12 +111,17 @@ export async function submitCheckout(
   const customerEmail = user?.email ?? submittedEmail;
 
   if (!firstName || !lastName || !customerEmail || !phone) {
-    return { error: "Preencha nome, sobrenome, e-mail e telefone para continuar." };
+    return { error: t("checkout.identificationRequired") };
   }
 
   const shippingAddress = readAddress(formData, "shipping");
   const shippingError = validateAddress(shippingAddress);
   if (shippingError) return { error: shippingError };
+
+  const servedCountries = await getServedCountries();
+  if (!servedCountries.includes(shippingAddress.country)) {
+    return { error: t("checkout.countryNotServed") };
+  }
 
   const billingSameAsShipping = formData.get("billingSameAsShipping") === "on";
   const billingAddress = billingSameAsShipping ? shippingAddress : readAddress(formData, "billing");
@@ -163,7 +156,7 @@ export async function submitCheckout(
         });
       }
 
-      await logStockProblem("Reserva de estoque falhou durante o checkout", {
+      await logStockProblem("Stock reservation failed during checkout", {
         productId: item.productId,
         variantId: item.variantId,
         quantity: item.quantity,
@@ -171,7 +164,7 @@ export async function submitCheckout(
       });
 
       return {
-        error: `O produto "${item.name}" ficou sem estoque suficiente enquanto você finalizava a compra. Ajuste a quantidade no carrinho e tente novamente.`,
+        error: t("checkout.itemOutOfStockDuringCheckout", { name: item.name }),
       };
     }
 
@@ -179,11 +172,11 @@ export async function submitCheckout(
   }
 
   const { data: orderNumberData } = await admin.rpc("generate_order_number");
-  const orderNumber = orderNumberData ?? `PED-${Date.now()}`;
+  const orderNumber = orderNumberData ?? `ORD-${Date.now()}`;
 
   const deliveryEstimate =
     cart.shipping.estimateDaysMin && cart.shipping.estimateDaysMax
-      ? `${cart.shipping.estimateDaysMin} a ${cart.shipping.estimateDaysMax} dias úteis`
+      ? t("checkout.deliveryEstimateRange", { min: cart.shipping.estimateDaysMin, max: cart.shipping.estimateDaysMax })
       : null;
 
   const expiresAt = new Date(Date.now() + CHECKOUT_SESSION_MINUTES * 60 * 1000);
@@ -224,7 +217,7 @@ export async function submitCheckout(
         p_qty: done.quantity,
       });
     }
-    return { error: "Não foi possível criar o pedido. Tente novamente." };
+    return { error: t("common.error") };
   }
 
   const orderItemsPayload = cart.items.map((item) => ({
@@ -248,7 +241,7 @@ export async function submitCheckout(
     order_id: order.id,
     event_type: "pedido_criado",
     new_status: "recebido",
-    note: user ? null : "Pedido criado como visitante.",
+    note: user ? null : "Order created as a guest.",
   });
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -282,7 +275,7 @@ export async function submitCheckout(
         price_data: {
           currency: currency.toLowerCase(),
           unit_amount: Math.round(cart.shippingTotal * 100),
-          product_data: { name: "Entrega" },
+          product_data: { name: "Delivery" },
         },
       });
     }
@@ -293,7 +286,7 @@ export async function submitCheckout(
         amount_off: Math.round(cart.discountTotal * 100),
         currency: currency.toLowerCase(),
         duration: "once",
-        name: cart.coupon?.code ? `Cupom ${cart.coupon.code}` : "Desconto",
+        name: cart.coupon?.code ? `Discount code ${cart.coupon.code}` : "Discount",
       });
       discounts.push({ coupon: stripeCoupon.id });
     }
@@ -310,7 +303,7 @@ export async function submitCheckout(
       payment_intent_data: { metadata: { order_id: order.id, order_number: order.order_number } },
     });
 
-    if (!session.url) throw new Error("Stripe não retornou uma URL de pagamento.");
+    if (!session.url) throw new Error("Stripe did not return a payment URL.");
     stripeSessionUrl = session.url;
 
     await admin.from("payments").insert({
@@ -337,7 +330,7 @@ export async function submitCheckout(
       .eq("id", order.id);
 
     return {
-      error: "Não foi possível iniciar o pagamento no momento. Nenhum valor foi cobrado. Tente novamente.",
+      error: t("checkout.paymentStartFailed"),
     };
   }
 
@@ -377,13 +370,13 @@ export async function submitCheckout(
       currency,
       address: {
         recipientName: shippingAddress.recipientName,
-        street: shippingAddress.street,
-        number: shippingAddress.number,
-        complement: shippingAddress.complement,
-        neighborhood: shippingAddress.neighborhood,
-        city: shippingAddress.city,
-        state: shippingAddress.state,
-        zipCode: shippingAddress.zipCode,
+        companyName: shippingAddress.companyName,
+        addressLine1: shippingAddress.addressLine1,
+        addressLine2: shippingAddress.addressLine2,
+        townCity: shippingAddress.townCity,
+        county: shippingAddress.county,
+        postcode: shippingAddress.postcode,
+        country: shippingAddress.country,
       },
       deliveryEstimate,
       trackingUrl,
@@ -407,13 +400,13 @@ export async function retryPayment(orderId: string): Promise<{ url: string | nul
   const admin = createAdminClient();
 
   const { data: order } = await admin.from("orders").select("*").eq("id", orderId).maybeSingle();
-  if (!order) return { url: null, error: "Pedido não encontrado." };
+  if (!order) return { url: null, error: t("errors.orderNotFound") };
 
   if (!["aguardando_pagamento", "recusado", "expirado"].includes(order.payment_status)) {
-    return { url: null, error: "Este pedido não pode mais ser pago novamente." };
+    return { url: null, error: t("checkout.orderNoLongerPayable") };
   }
   if (order.status === "cancelado") {
-    return { url: null, error: "Este pedido foi cancelado." };
+    return { url: null, error: t("checkout.orderCancelledNotice") };
   }
 
   const { data: items } = await admin
@@ -421,7 +414,7 @@ export async function retryPayment(orderId: string): Promise<{ url: string | nul
     .select("product_id, variant_id, quantity, product_name_snapshot, variant_label_snapshot, unit_price, image_url_snapshot")
     .eq("order_id", order.id);
 
-  if (!items || items.length === 0) return { url: null, error: "Pedido sem itens." };
+  if (!items || items.length === 0) return { url: null, error: t("checkout.orderHasNoItems") };
 
   const reserved: { productId: string; variantId: string | null; quantity: number }[] = [];
   for (const item of items) {
@@ -440,7 +433,7 @@ export async function retryPayment(orderId: string): Promise<{ url: string | nul
           p_qty: done.quantity,
         });
       }
-      return { url: null, error: "Um ou mais produtos deste pedido ficaram sem estoque." };
+      return { url: null, error: t("checkout.itemsOutOfStock") };
     }
     reserved.push({ productId: item.product_id, variantId: item.variant_id, quantity: item.quantity });
   }
@@ -491,6 +484,6 @@ export async function retryPayment(orderId: string): Promise<{ url: string | nul
         p_qty: done.quantity,
       });
     }
-    return { url: null, error: "Não foi possível iniciar o pagamento. Tente novamente." };
+    return { url: null, error: t("checkout.paymentStartFailed") };
   }
 }

@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { AccountNav } from "@/components/account/AccountNav";
 import { formatCurrency } from "@/lib/utils";
+import { formatPublicDate } from "@/lib/format-date";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -45,7 +46,7 @@ export default async function OrdersPage() {
                 <div>
                   <p className="font-medium text-brand-secondary">#{order.order_number}</p>
                   <p className="text-xs text-gray-500">
-                    {new Date(order.created_at).toLocaleDateString("pt-BR")} · {itemCount} {t("account.items")}
+                    {formatPublicDate(order.created_at)} · {itemCount} {t("account.items")}
                   </p>
                 </div>
                 <div className="flex gap-2">

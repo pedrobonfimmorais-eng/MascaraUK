@@ -24,6 +24,15 @@ export interface StoreSettings {
   maintenanceMode: boolean;
   maintenanceMessage: string;
   maintenanceEstimatedReturn: string;
+  /** UK company/business details — every field starts blank and is never invented; the settings UI warns while they're empty. */
+  legalBusinessName: string;
+  companyNumber: string;
+  registeredOffice: string;
+  businessHours: string;
+  /** VAT: null rate means "VAT not configured" — never assume a rate. */
+  vatNumber: string;
+  vatRate: number | null;
+  vatPricesIncludeVat: boolean;
 }
 
 function defaults(): StoreSettings {
@@ -48,6 +57,13 @@ function defaults(): StoreSettings {
     maintenanceMode: false,
     maintenanceMessage: "",
     maintenanceEstimatedReturn: "",
+    legalBusinessName: "",
+    companyNumber: "",
+    registeredOffice: "",
+    businessHours: "",
+    vatNumber: "",
+    vatRate: null,
+    vatPricesIncludeVat: true,
   };
 }
 
@@ -57,7 +73,7 @@ function defaults(): StoreSettings {
  */
 export async function getStoreCurrency(): Promise<string> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return "BRL";
+    return "GBP";
   }
 
   try {
@@ -68,9 +84,9 @@ export async function getStoreCurrency(): Promise<string> {
       .eq("key", "store_currency")
       .maybeSingle();
 
-    return (data?.value as string) ?? "BRL";
+    return (data?.value as string) ?? "GBP";
   } catch {
-    return "BRL";
+    return "GBP";
   }
 }
 
@@ -118,7 +134,36 @@ export async function getStoreSettings(): Promise<StoreSettings> {
       maintenanceMode: (map.get("maintenance_mode") as boolean | undefined) ?? fallback.maintenanceMode,
       maintenanceMessage: (map.get("maintenance_message") as string) ?? fallback.maintenanceMessage,
       maintenanceEstimatedReturn: (map.get("maintenance_estimated_return") as string) ?? fallback.maintenanceEstimatedReturn,
+      legalBusinessName: (map.get("legal_business_name") as string) ?? fallback.legalBusinessName,
+      companyNumber: (map.get("company_number") as string) ?? fallback.companyNumber,
+      registeredOffice: (map.get("registered_office") as string) ?? fallback.registeredOffice,
+      businessHours: (map.get("business_hours") as string) ?? fallback.businessHours,
+      vatNumber: (map.get("vat_number") as string) ?? fallback.vatNumber,
+      vatRate: (map.get("vat_rate") as number | null | undefined) ?? fallback.vatRate,
+      vatPricesIncludeVat: (map.get("vat_prices_include_vat") as boolean | undefined) ?? fallback.vatPricesIncludeVat,
     };
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Countries the store currently ships to (store_settings.served_countries).
+ * Checkout rejects any address whose country isn't in this list — never
+ * silently accept an order the store has no configured delivery method for.
+ */
+export async function getServedCountries(): Promise<string[]> {
+  const fallback = ["United Kingdom"];
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return fallback;
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("store_settings").select("value").eq("key", "served_countries").maybeSingle();
+    const countries = data?.value as string[] | undefined;
+    return countries && countries.length > 0 ? countries : fallback;
   } catch {
     return fallback;
   }

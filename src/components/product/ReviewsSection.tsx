@@ -3,10 +3,11 @@ import { t } from "@/i18n";
 import { getProductReviews } from "@/lib/reviews";
 import { getCurrentUser } from "@/lib/auth";
 import { ReviewForm } from "@/components/product/ReviewForm";
+import { formatPublicDate } from "@/lib/format-date";
 
 function Stars({ rating }: { rating: number }) {
   return (
-    <div className="flex items-center gap-1 text-amber-500" aria-label={`${rating} de 5`}>
+    <div className="flex items-center gap-1 text-amber-500" aria-label={`${rating} out of 5`}>
       {Array.from({ length: 5 }).map((_, i) => (
         <span key={i} aria-hidden="true">
           {i < Math.round(rating) ? "★" : "☆"}
@@ -47,7 +48,7 @@ export async function ReviewsSection({ productId, productSlug }: { productId: st
               <p className="mt-2 text-xs text-gray-500">
                 {review.customerName}
                 {review.isVerifiedPurchase && ` · ${t("product.verifiedPurchase")}`} ·{" "}
-                {new Date(review.createdAt).toLocaleDateString("pt-BR")}
+                {formatPublicDate(review.createdAt)}
               </p>
             </div>
           ))}

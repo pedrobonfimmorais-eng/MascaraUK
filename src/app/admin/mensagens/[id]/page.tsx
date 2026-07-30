@@ -1,12 +1,12 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { requirePermission } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MessageDetailPanel } from "@/components/admin/MessageDetailPanel";
 
-export const metadata: Metadata = { title: t("admin.messages.detailTitle") };
+export const metadata: Metadata = { title: ta("admin.messages.detailTitle") };
 
 interface AdminMessageDetailPageProps {
   params: Promise<{ id: string }>;
@@ -25,7 +25,7 @@ export default async function AdminMessageDetailPage({ params }: AdminMessageDet
   return (
     <div className="flex flex-col gap-6">
       <Link href="/admin/mensagens" className="text-sm text-brand-primary hover:underline">
-        ← {t("admin.messages.backToList")}
+        ← {ta("admin.messages.backToList")}
       </Link>
 
       <h1 className="text-2xl font-bold text-brand-secondary">{message.subject}</h1>
@@ -37,7 +37,7 @@ export default async function AdminMessageDetailPage({ params }: AdminMessageDet
         {message.phone && <p className="text-gray-500">{message.phone}</p>}
         {message.order_number && (
           <p className="text-gray-500">
-            {t("admin.messages.orderNumber")}: {message.order_number}
+            {ta("admin.messages.orderNumber")}: {message.order_number}
           </p>
         )}
         <p className="mt-3 whitespace-pre-wrap">{message.message}</p>

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { createClient } from "@/lib/supabase/server";
+import { formatCurrency } from "@/lib/utils";
 
-export const metadata: Metadata = { title: t("admin.dashboard") };
+export const metadata: Metadata = { title: ta("admin.dashboard") };
 
 async function getCounts() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -90,35 +91,30 @@ export default async function AdminDashboardPage() {
   const [counts, notifications] = await Promise.all([getCounts(), getNotifications()]);
 
   const alerts: { label: string; count: number; href: string }[] = [
-    { label: t("admin.notifications.newPaidOrders"), count: notifications.newPaidOrders, href: "/admin/pedidos?status=recebido&payment=pago" },
-    { label: t("admin.notifications.refusedPayments"), count: notifications.refused, href: "/admin/pedidos?payment=recusado" },
-    { label: t("admin.notifications.awaitingShipment"), count: notifications.awaitingShipment, href: "/admin/pedidos?status=pronto_para_envio" },
-    { label: t("admin.notifications.returnRequests"), count: notifications.returnRequests, href: "/admin/pedidos?status=devolucao_solicitada" },
-    { label: t("admin.notifications.lowStock"), count: notifications.lowStock, href: "/admin/produtos" },
-    { label: t("admin.notifications.outOfStock"), count: notifications.outOfStock, href: "/admin/produtos" },
+    { label: ta("admin.notifications.newPaidOrders"), count: notifications.newPaidOrders, href: "/admin/pedidos?status=recebido&payment=pago" },
+    { label: ta("admin.notifications.refusedPayments"), count: notifications.refused, href: "/admin/pedidos?payment=recusado" },
+    { label: ta("admin.notifications.awaitingShipment"), count: notifications.awaitingShipment, href: "/admin/pedidos?status=pronto_para_envio" },
+    { label: ta("admin.notifications.returnRequests"), count: notifications.returnRequests, href: "/admin/pedidos?status=devolucao_solicitada" },
+    { label: ta("admin.notifications.lowStock"), count: notifications.lowStock, href: "/admin/produtos" },
+    { label: ta("admin.notifications.outOfStock"), count: notifications.outOfStock, href: "/admin/produtos" },
   ].filter((alert) => alert.count > 0);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-brand-secondary">{t("admin.dashboardTitle")}</h1>
+        <h1 className="text-2xl font-bold text-brand-secondary">{ta("admin.dashboardTitle")}</h1>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label={t("admin.stats.totalOrders")} value={counts.orders} />
-        <StatCard
-          label={t("admin.stats.totalRevenue")}
-          value={new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-            counts.revenue
-          )}
-        />
-        <StatCard label={t("admin.stats.totalProducts")} value={counts.products} />
-        <StatCard label={t("admin.stats.totalCustomers")} value={counts.customers} />
+        <StatCard label={ta("admin.stats.totalOrders")} value={counts.orders} />
+        <StatCard label={ta("admin.stats.totalRevenue")} value={formatCurrency(counts.revenue)} />
+        <StatCard label={ta("admin.stats.totalProducts")} value={counts.products} />
+        <StatCard label={ta("admin.stats.totalCustomers")} value={counts.customers} />
       </div>
 
       {alerts.length > 0 && (
         <div>
-          <h2 className="mb-3 font-semibold text-brand-secondary">{t("admin.notifications.title")}</h2>
+          <h2 className="mb-3 font-semibold text-brand-secondary">{ta("admin.notifications.title")}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {alerts.map((alert) => (
               <Link

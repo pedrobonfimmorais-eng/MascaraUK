@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { t } from "@/i18n";
 import {
   privacyPolicyContent,
   cookiePolicyContent,
@@ -21,7 +22,7 @@ const FALLBACK_CONTENT_BY_SLUG: Record<string, () => string> = {
 };
 
 function fallbackContentFor(slug: string): string {
-  return FALLBACK_CONTENT_BY_SLUG[slug]?.() ?? "Conteúdo ainda não cadastrado para esta página.";
+  return FALLBACK_CONTENT_BY_SLUG[slug]?.() ?? t("legal.contentNotYetAvailable");
 }
 
 /**

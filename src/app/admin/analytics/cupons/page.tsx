@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { PeriodFilterBar } from "@/components/analytics/PeriodFilterBar";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -8,7 +8,7 @@ import { formatCurrency } from "@/lib/utils";
 import { parseAnalyticsSearchParams, type AnalyticsSearchParams } from "@/lib/analytics/request-params";
 import { getCouponAnalytics } from "@/lib/analytics/coupons";
 
-export const metadata: Metadata = { title: t("analytics.nav.coupons") };
+export const metadata: Metadata = { title: ta("analytics.nav.coupons") };
 
 interface CouponsAnalyticsPageProps {
   searchParams: Promise<AnalyticsSearchParams>;
@@ -22,7 +22,7 @@ export default async function CouponsAnalyticsPage({ searchParams }: CouponsAnal
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-brand-secondary">{t("analytics.nav.coupons")}</h1>
+      <h1 className="text-2xl font-bold text-brand-secondary">{ta("analytics.nav.coupons")}</h1>
       <AnalyticsNav active="cupons" />
       <PeriodFilterBar
         period={period.key}
@@ -33,19 +33,19 @@ export default async function CouponsAnalyticsPage({ searchParams }: CouponsAnal
       />
 
       {sorted.length === 0 ? (
-        <EmptyState title={t("analytics.insufficientData")} />
+        <EmptyState title={ta("analytics.insufficientData")} />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
-                <th className="px-4 py-3">{t("cart.couponPlaceholder")}</th>
-                <th className="px-4 py-3">{t("analytics.coupons.uses")}</th>
-                <th className="px-4 py-3">{t("analytics.coupons.customers")}</th>
-                <th className="px-4 py-3">{t("admin.orders.columnTotal")}</th>
-                <th className="px-4 py-3">{t("analytics.coupons.discountGiven")}</th>
-                <th className="px-4 py-3">{t("analytics.metrics.aov")}</th>
-                <th className="px-4 py-3">{t("account.orderStatus")}</th>
+                <th className="px-4 py-3">{ta("cart.couponPlaceholder")}</th>
+                <th className="px-4 py-3">{ta("analytics.coupons.uses")}</th>
+                <th className="px-4 py-3">{ta("analytics.coupons.customers")}</th>
+                <th className="px-4 py-3">{ta("admin.orders.columnTotal")}</th>
+                <th className="px-4 py-3">{ta("analytics.coupons.discountGiven")}</th>
+                <th className="px-4 py-3">{ta("analytics.metrics.aov")}</th>
+                <th className="px-4 py-3">{ta("account.orderStatus")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -62,10 +62,10 @@ export default async function CouponsAnalyticsPage({ searchParams }: CouponsAnal
                     <td className="px-4 py-3">{formatCurrency(coupon.averageOrderValue)}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {!coupon.isActive && <Badge tone="neutral">{t("common.no")}</Badge>}
-                        {isExpired && <Badge tone="danger">{t("analytics.coupons.expired")}</Badge>}
-                        {nearLimit && <Badge tone="warning">{t("analytics.coupons.nearLimit")}</Badge>}
-                        {coupon.uses === 0 && <Badge tone="neutral">{t("analytics.coupons.unused")}</Badge>}
+                        {!coupon.isActive && <Badge tone="neutral">{ta("common.no")}</Badge>}
+                        {isExpired && <Badge tone="danger">{ta("analytics.coupons.expired")}</Badge>}
+                        {nearLimit && <Badge tone="warning">{ta("analytics.coupons.nearLimit")}</Badge>}
+                        {coupon.uses === 0 && <Badge tone="neutral">{ta("analytics.coupons.unused")}</Badge>}
                       </div>
                     </td>
                   </tr>

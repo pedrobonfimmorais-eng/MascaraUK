@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { t, type TranslationKey } from "@/i18n";
+import { ta, type TranslationKey } from "@/i18n";
 import { requireAdmin } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
-import { getStoreSettings, getStoreCurrency } from "@/lib/store-settings";
+import { getStoreSettings, getStoreCurrency, getServedCountries } from "@/lib/store-settings";
 import { getShippingRules } from "@/lib/cart/cart-data";
 import { getAnalyticsThresholds } from "@/lib/analytics/settings";
 import { getPaymentIntegrationStatus, getEmailIntegrationStatus } from "@/lib/integration-status";
@@ -21,7 +21,7 @@ import {
   MaintenanceTab,
 } from "@/components/admin/settings/SettingsTabs";
 
-export const metadata: Metadata = { title: t("admin.sidebar.settings") };
+export const metadata: Metadata = { title: ta("admin.sidebar.settings") };
 
 const TABS = [
   "informacoes",
@@ -63,7 +63,7 @@ export default async function AdminSettingsPage({ searchParams }: AdminSettingsP
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-brand-secondary">{t("admin.sidebar.settings")}</h1>
+      <h1 className="text-2xl font-bold text-brand-secondary">{ta("admin.sidebar.settings")}</h1>
 
       <nav className="flex flex-wrap gap-1 border-b border-gray-200">
         {TABS.map((value) => (
@@ -75,7 +75,7 @@ export default async function AdminSettingsPage({ searchParams }: AdminSettingsP
               value === tab ? "border-b-2 border-brand-primary text-brand-primary" : "text-gray-600 hover:text-brand-primary"
             )}
           >
-            {t(TAB_LABELS[value])}
+            {ta(TAB_LABELS[value])}
           </Link>
         ))}
       </nav>
@@ -104,8 +104,8 @@ async function TabContent({
       return <SalesTab settings={settings} currency={currency} lowStockQuantity={thresholds.lowStockQuantity} />;
     }
     case "entrega": {
-      const rules = await getShippingRules();
-      return <DeliveryTab shippingRules={rules} />;
+      const [rules, servedCountries] = await Promise.all([getShippingRules(), getServedCountries()]);
+      return <DeliveryTab shippingRules={rules} servedCountries={servedCountries} />;
     }
     case "pagamentos":
       return <PaymentsTab status={getPaymentIntegrationStatus()} />;

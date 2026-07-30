@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: t("admin.sidebar.categories") };
+export const metadata: Metadata = { title: ta("admin.sidebar.categories") };
 
 export default async function AdminCategoriesPage() {
   const supabase = await createClient();
@@ -15,10 +15,10 @@ export default async function AdminCategoriesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-brand-secondary">{t("admin.sidebar.categories")}</h1>
+      <h1 className="text-2xl font-bold text-brand-secondary">{ta("admin.sidebar.categories")}</h1>
 
       {!categories || categories.length === 0 ? (
-        <EmptyState title={t("admin.empty.categories")} />
+        <EmptyState title={ta("admin.empty.categories")} />
       ) : (
         <div className="flex flex-col divide-y divide-gray-200 rounded-xl border border-gray-200">
           {categories.map((category) => (

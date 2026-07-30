@@ -37,6 +37,10 @@ export async function updateStoreInfo(
     { key: "business_address", value: String(formData.get("business_address") ?? "") },
     { key: "contact_email", value: String(formData.get("contact_email") ?? "") },
     { key: "contact_phone", value: String(formData.get("contact_phone") ?? "") },
+    { key: "legal_business_name", value: String(formData.get("legal_business_name") ?? "") },
+    { key: "company_number", value: String(formData.get("company_number") ?? "") },
+    { key: "registered_office", value: String(formData.get("registered_office") ?? "") },
+    { key: "business_hours", value: String(formData.get("business_hours") ?? "") },
   ]);
 
   if (error) return { error: "Não foi possível salvar as configurações." };
@@ -87,13 +91,20 @@ export async function updateSalesSettings(
   const admin = await requirePermission("settings.manage");
   if (!admin) return { error: "Apenas administradores com permissão podem alterar as configurações." };
 
-  const currency = String(formData.get("store_currency") ?? "BRL");
+  const currency = String(formData.get("store_currency") ?? "GBP");
   const allowGuestCheckout = formData.get("allow_guest_checkout") === "on";
   const lowStockQuantity = parseInt(String(formData.get("low_stock_quantity") ?? "5"), 10);
+
+  const vatRateRaw = String(formData.get("vat_rate") ?? "").trim();
+  const vatRate = vatRateRaw === "" ? null : parseFloat(vatRateRaw);
+  const vatPricesIncludeVat = formData.get("vat_prices_include_vat") === "on";
 
   const { error } = await upsertSettings([
     { key: "store_currency", value: currency },
     { key: "allow_guest_checkout", value: allowGuestCheckout },
+    { key: "vat_number", value: String(formData.get("vat_number") ?? "") },
+    { key: "vat_rate", value: vatRate != null && !Number.isNaN(vatRate) ? vatRate : null },
+    { key: "vat_prices_include_vat", value: vatPricesIncludeVat },
   ]);
 
   if (error) return { error: "Não foi possível salvar as configurações." };
@@ -123,30 +134,40 @@ export async function updateShippingRules(
 
   const standard: ShippingRuleOption = {
     id: "standard",
-    label: String(formData.get("standard_label") ?? "Entrega padrão"),
-    rate: num("standard_rate", 19.9),
-    estimate_days_min: num("standard_days_min", 5),
-    estimate_days_max: num("standard_days_max", 10),
+    label: String(formData.get("standard_label") ?? "Standard Delivery"),
+    rate: num("standard_rate", 3.95),
+    estimate_days_min: num("standard_days_min", 3),
+    estimate_days_max: num("standard_days_max", 5),
+    tracking_included: formData.get("standard_tracking") === "on",
+    is_active: formData.get("standard_active") !== "off",
   };
   const express: ShippingRuleOption = {
     id: "express",
-    label: String(formData.get("express_label") ?? "Entrega expressa"),
-    rate: num("express_rate", 34.9),
-    estimate_days_min: num("express_days_min", 2),
-    estimate_days_max: num("express_days_max", 4),
+    label: String(formData.get("express_label") ?? "Express Delivery"),
+    rate: num("express_rate", 6.95),
+    estimate_days_min: num("express_days_min", 1),
+    estimate_days_max: num("express_days_max", 2),
+    tracking_included: formData.get("express_tracking") === "on",
+    is_active: formData.get("express_active") !== "off",
   };
+
+  const servedCountries = String(formData.get("served_countries") ?? "United Kingdom")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
 
   const { error } = await upsertSettings([
     {
       key: "shipping_rules",
       value: {
-        free_shipping_threshold: num("free_shipping_threshold", 250),
+        free_shipping_threshold: num("free_shipping_threshold", 50),
         default_rate: standard.rate,
         default_estimate_days_min: standard.estimate_days_min,
         default_estimate_days_max: standard.estimate_days_max,
         options: [standard, express],
       },
     },
+    { key: "served_countries", value: servedCountries.length > 0 ? servedCountries : ["United Kingdom"] },
   ]);
 
   if (error) return { error: "Não foi possível salvar as regras de entrega." };

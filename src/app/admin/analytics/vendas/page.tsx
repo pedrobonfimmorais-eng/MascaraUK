@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { PeriodFilterBar } from "@/components/analytics/PeriodFilterBar";
 import { AdditionalCostsManager } from "@/components/analytics/AdditionalCostsManager";
@@ -10,7 +10,7 @@ import { getPaidOrdersSummary } from "@/lib/analytics/queries";
 import { getApplicableAdditionalCosts, listAdditionalCosts } from "@/lib/analytics/costs";
 import { getProfitEstimate, getProductsMissingCost } from "@/lib/analytics/profit";
 
-export const metadata: Metadata = { title: t("analytics.nav.sales") };
+export const metadata: Metadata = { title: ta("analytics.nav.sales") };
 
 interface SalesPageProps {
   searchParams: Promise<AnalyticsSearchParams>;
@@ -33,7 +33,7 @@ export default async function SalesAnalyticsPage({ searchParams }: SalesPageProp
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-brand-secondary">{t("analytics.nav.sales")}</h1>
+      <h1 className="text-2xl font-bold text-brand-secondary">{ta("analytics.nav.sales")}</h1>
       <AnalyticsNav active="vendas" />
       <PeriodFilterBar
         period={period.key}
@@ -45,55 +45,55 @@ export default async function SalesAnalyticsPage({ searchParams }: SalesPageProp
 
       {hasNoSales ? (
         <p className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
-          {t("analytics.noSalesInPeriod")}
+          {ta("analytics.noSalesInPeriod")}
         </p>
       ) : (
         <>
           <section className="rounded-xl border border-gray-200 p-4">
-            <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.sales.summaryTitle")}</h2>
+            <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.sales.summaryTitle")}</h2>
             <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-4">
-              <Item label={t("analytics.metrics.grossRevenue")} value={formatCurrency(summary.grossRevenue)} />
-              <Item label={t("analytics.sales.discounts")} value={formatCurrency(summary.discountTotal)} />
-              <Item label={t("analytics.sales.couponValue")} value={formatCurrency(summary.couponDiscountTotal)} />
-              <Item label={t("analytics.sales.shippingValue")} value={formatCurrency(summary.shippingTotal)} />
-              <Item label={t("analytics.sales.refunds")} value={formatCurrency(summary.refundTotal)} />
-              <Item label={t("analytics.metrics.netRevenue")} value={formatCurrency(netRevenueEstimate)} highlight />
-              <Item label={t("analytics.metrics.paidOrders")} value={String(summary.paidOrdersCount)} />
-              <Item label={t("analytics.metrics.itemsSold")} value={String(summary.itemsSold)} />
-              <Item label={t("analytics.metrics.aov")} value={formatCurrency(summary.averageOrderValue)} />
-              <Item label={t("analytics.sales.biggestOrder")} value={formatCurrency(summary.biggestOrder)} />
-              <Item label={t("analytics.sales.smallestOrder")} value={formatCurrency(summary.smallestOrder)} />
-              <Item label={t("analytics.sales.avgItemsPerOrder")} value={summary.averageItemsPerOrder.toString()} />
+              <Item label={ta("analytics.metrics.grossRevenue")} value={formatCurrency(summary.grossRevenue)} />
+              <Item label={ta("analytics.sales.discounts")} value={formatCurrency(summary.discountTotal)} />
+              <Item label={ta("analytics.sales.couponValue")} value={formatCurrency(summary.couponDiscountTotal)} />
+              <Item label={ta("analytics.sales.shippingValue")} value={formatCurrency(summary.shippingTotal)} />
+              <Item label={ta("analytics.sales.refunds")} value={formatCurrency(summary.refundTotal)} />
+              <Item label={ta("analytics.metrics.netRevenue")} value={formatCurrency(netRevenueEstimate)} highlight />
+              <Item label={ta("analytics.metrics.paidOrders")} value={String(summary.paidOrdersCount)} />
+              <Item label={ta("analytics.metrics.itemsSold")} value={String(summary.itemsSold)} />
+              <Item label={ta("analytics.metrics.aov")} value={formatCurrency(summary.averageOrderValue)} />
+              <Item label={ta("analytics.sales.biggestOrder")} value={formatCurrency(summary.biggestOrder)} />
+              <Item label={ta("analytics.sales.smallestOrder")} value={formatCurrency(summary.smallestOrder)} />
+              <Item label={ta("analytics.sales.avgItemsPerOrder")} value={summary.averageItemsPerOrder.toString()} />
             </dl>
-            <p className="mt-3 text-xs text-gray-500">{t("analytics.netRevenueDisclaimer")}</p>
+            <p className="mt-3 text-xs text-gray-500">{ta("analytics.netRevenueDisclaimer")}</p>
           </section>
 
           <section className="rounded-xl border border-gray-200 p-4">
-            <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.profit.title")}</h2>
+            <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.profit.title")}</h2>
             <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-              <Item label={t("analytics.profit.productRevenue")} value={formatCurrency(profit.productRevenue)} />
-              <Item label={t("analytics.profit.cogs")} value={formatCurrency(profit.cogs)} />
-              <Item label={t("cart.discount")} value={formatCurrency(profit.discountTotal)} />
-              <Item label={t("analytics.sales.refunds")} value={formatCurrency(profit.refundTotal)} />
-              <Item label={t("analytics.profit.grossProfit")} value={formatCurrency(profit.grossProfit)} highlight />
+              <Item label={ta("analytics.profit.productRevenue")} value={formatCurrency(profit.productRevenue)} />
+              <Item label={ta("analytics.profit.cogs")} value={formatCurrency(profit.cogs)} />
+              <Item label={ta("cart.discount")} value={formatCurrency(profit.discountTotal)} />
+              <Item label={ta("analytics.sales.refunds")} value={formatCurrency(profit.refundTotal)} />
+              <Item label={ta("analytics.profit.grossProfit")} value={formatCurrency(profit.grossProfit)} highlight />
               <Item
-                label={t("analytics.profit.grossMargin")}
-                value={profit.grossMargin == null ? t("analytics.insufficientData") : `${profit.grossMargin}%`}
+                label={ta("analytics.profit.grossMargin")}
+                value={profit.grossMargin == null ? ta("analytics.insufficientData") : `${profit.grossMargin}%`}
                 highlight
               />
             </dl>
-            <p className="mt-3 text-xs text-gray-500">{t("analytics.profit.estimateDisclaimer")}</p>
+            <p className="mt-3 text-xs text-gray-500">{ta("analytics.profit.estimateDisclaimer")}</p>
 
             {missingCost.length > 0 && (
               <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-                <p className="font-medium">{t("analytics.profit.missingCostWarning")}</p>
+                <p className="font-medium">{ta("analytics.profit.missingCostWarning")}</p>
                 <ul className="mt-2 flex flex-col gap-1">
                   {missingCost.map((product) => (
                     <li key={product.id} className="flex justify-between">
                       <Link href={`/admin/produtos`} className="hover:underline">
                         {product.name}
                       </Link>
-                      <span>{t("analytics.profit.soldUnits", { count: product.quantitySold })}</span>
+                      <span>{ta("analytics.profit.soldUnits", { count: product.quantitySold })}</span>
                     </li>
                   ))}
                 </ul>
@@ -104,8 +104,8 @@ export default async function SalesAnalyticsPage({ searchParams }: SalesPageProp
       )}
 
       <section className="rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-1 font-semibold text-brand-secondary">{t("analytics.costs.title")}</h2>
-        <p className="mb-4 text-sm text-gray-500">{t("analytics.costs.subtitle")}</p>
+        <h2 className="mb-1 font-semibold text-brand-secondary">{ta("analytics.costs.title")}</h2>
+        <p className="mb-4 text-sm text-gray-500">{ta("analytics.costs.subtitle")}</p>
         <AdditionalCostsManager costs={costs} />
       </section>
     </div>

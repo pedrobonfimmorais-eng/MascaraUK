@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: t("admin.sidebar.coupons") };
+export const metadata: Metadata = { title: ta("admin.sidebar.coupons") };
 
 export default async function AdminCouponsPage() {
   const supabase = await createClient();
@@ -15,10 +15,10 @@ export default async function AdminCouponsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-brand-secondary">{t("admin.sidebar.coupons")}</h1>
+      <h1 className="text-2xl font-bold text-brand-secondary">{ta("admin.sidebar.coupons")}</h1>
 
       {!coupons || coupons.length === 0 ? (
-        <EmptyState title={t("admin.empty.coupons")} />
+        <EmptyState title={ta("admin.empty.coupons")} />
       ) : (
         <div className="flex flex-col divide-y divide-gray-200 rounded-xl border border-gray-200">
           {coupons.map((coupon) => (

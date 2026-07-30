@@ -2,18 +2,25 @@ import "server-only";
 import { formatCurrency } from "@/lib/utils";
 
 /**
- * Portuguese e-mail templates for every order-lifecycle notification. Each
- * function returns { subject, html } for use with sendEmail(). Kept in one
- * file, in Portuguese, per the project's i18n rule ("mantenha os textos no
- * sistema central de tradução") — the *content structure* here is data-only
- * (order numbers, prices, addresses), so translating the store to English
- * later only requires swapping these copy strings, not the surrounding code.
+ * English (British) e-mail templates for every order-lifecycle
+ * notification sent to customers. Each function returns { subject, html }
+ * for use with sendEmail(). The public storefront is en-GB (Prompt 7), so
+ * every customer-facing template lives here in English — "Dispatched" is
+ * used consistently instead of mixing it with "Shipped".
  *
- * Note: account e-mails (confirmação de cadastro, verificação de e-mail,
- * recuperação de senha) are sent directly by Supabase Auth, not by this
- * module — customize their copy in Supabase Dashboard → Authentication →
+ * Admin-facing templates (new order, payment error, admin invite, low
+ * stock) take an explicit `lang` parameter ("pt" | "en") so the store
+ * owner can choose their language in store_settings.admin_email_language
+ * — they default to "pt" since the admin panel itself stays in
+ * Portuguese for the Brazilian store owner.
+ *
+ * Note: account e-mails (sign-up confirmation, e-mail verification,
+ * password recovery) are sent directly by Supabase Auth, not by this
+ * module — customise their copy in Supabase Dashboard → Authentication →
  * Email Templates (see README).
  */
+
+export type AdminEmailLang = "pt" | "en";
 
 export interface OrderEmailItem {
   name: string;
@@ -23,15 +30,16 @@ export interface OrderEmailItem {
   imageUrl: string | null;
 }
 
+/** UK address format — see src/types/order-snapshots.ts (AddressSnapshot). */
 export interface OrderEmailAddress {
   recipientName: string;
-  street: string;
-  number: string;
-  complement: string | null;
-  neighborhood: string;
-  city: string;
-  state: string;
-  zipCode: string;
+  companyName: string | null;
+  addressLine1: string;
+  addressLine2: string | null;
+  townCity: string;
+  county: string | null;
+  postcode: string;
+  country: string;
 }
 
 export interface OrderEmailData {
@@ -50,9 +58,14 @@ export interface OrderEmailData {
 
 const STORE_NAME = "MascaraUK";
 
-function layout(title: string, bodyHtml: string): string {
+function layout(title: string, bodyHtml: string, lang: AdminEmailLang = "en"): string {
+  const footer =
+    lang === "pt"
+      ? `Esta é uma mensagem automática do painel administrativo da ${STORE_NAME}.`
+      : `This is an automated message about your order at ${STORE_NAME}. If you have any questions, reply to this email or contact us through our website.`;
+
   return `<!doctype html>
-<html lang="pt-BR">
+<html lang="${lang === "pt" ? "pt-BR" : "en-GB"}">
   <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;color:#111827;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:24px 0;">
       <tr>
@@ -71,7 +84,7 @@ function layout(title: string, bodyHtml: string): string {
             </tr>
             <tr>
               <td style="padding:20px 32px;background-color:#f9fafb;color:#6b7280;font-size:12px;">
-                Esta é uma mensagem automática sobre o seu pedido na ${STORE_NAME}. Em caso de dúvidas, responda este e-mail ou entre em contato pelo nosso site.
+                ${footer}
               </td>
             </tr>
           </table>
@@ -89,7 +102,7 @@ function itemsTable(items: OrderEmailItem[], currency: string): string {
         <tr>
           <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px;">
             ${item.name}${item.variantLabel ? ` — ${item.variantLabel}` : ""}<br/>
-            <span style="color:#6b7280;">Qtd: ${item.quantity} × ${formatCurrency(item.unitPrice, currency)}</span>
+            <span style="color:#6b7280;">Qty: ${item.quantity} × ${formatCurrency(item.unitPrice, currency)}</span>
           </td>
           <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px;text-align:right;">
             ${formatCurrency(item.unitPrice * item.quantity, currency)}
@@ -105,21 +118,23 @@ function totalsTable(data: OrderEmailData): string {
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
       <tr><td style="padding:2px 0;color:#6b7280;">Subtotal</td><td style="padding:2px 0;text-align:right;">${formatCurrency(data.subtotal, data.currency)}</td></tr>
-      ${data.discountTotal > 0 ? `<tr><td style="padding:2px 0;color:#6b7280;">Desconto</td><td style="padding:2px 0;text-align:right;">-${formatCurrency(data.discountTotal, data.currency)}</td></tr>` : ""}
-      <tr><td style="padding:2px 0;color:#6b7280;">Entrega</td><td style="padding:2px 0;text-align:right;">${data.shippingTotal > 0 ? formatCurrency(data.shippingTotal, data.currency) : "Grátis"}</td></tr>
+      ${data.discountTotal > 0 ? `<tr><td style="padding:2px 0;color:#6b7280;">Discount</td><td style="padding:2px 0;text-align:right;">-${formatCurrency(data.discountTotal, data.currency)}</td></tr>` : ""}
+      <tr><td style="padding:2px 0;color:#6b7280;">Delivery</td><td style="padding:2px 0;text-align:right;">${data.shippingTotal > 0 ? formatCurrency(data.shippingTotal, data.currency) : "Free"}</td></tr>
       <tr><td style="padding:8px 0 0;font-weight:bold;border-top:1px solid #e5e7eb;">Total</td><td style="padding:8px 0 0;font-weight:bold;text-align:right;border-top:1px solid #e5e7eb;">${formatCurrency(data.total, data.currency)}</td></tr>
     </table>`;
 }
 
-function addressBlock(address: OrderEmailAddress | null): string {
+function addressBlock(address: OrderEmailAddress | null, label = "Delivery address"): string {
   if (!address) return "";
   return `
     <p style="font-size:14px;color:#374151;margin:16px 0 0;">
-      <strong>Endereço de entrega</strong><br/>
+      <strong>${label}</strong><br/>
       ${address.recipientName}<br/>
-      ${address.street}, ${address.number}${address.complement ? ` — ${address.complement}` : ""}<br/>
-      ${address.neighborhood} — ${address.city}/${address.state}<br/>
-      CEP ${address.zipCode}
+      ${address.companyName ? `${address.companyName}<br/>` : ""}
+      ${address.addressLine1}${address.addressLine2 ? `, ${address.addressLine2}` : ""}<br/>
+      ${address.townCity}${address.county ? `, ${address.county}` : ""}<br/>
+      ${address.postcode}<br/>
+      ${address.country}
     </p>`;
 }
 
@@ -129,65 +144,65 @@ function ctaButton(label: string, url: string): string {
 
 export function orderReceivedEmail(data: OrderEmailData) {
   return {
-    subject: `Recebemos seu pedido #${data.orderNumber}`,
+    subject: `We've received your order #${data.orderNumber}`,
     html: layout(
-      "Recebemos seu pedido!",
-      `<p style="font-size:14px;">Olá, ${data.customerName}. Recebemos seu pedido <strong>#${data.orderNumber}</strong> e estamos aguardando a confirmação do pagamento.</p>
+      "We've received your order!",
+      `<p style="font-size:14px;">Hi ${data.customerName}, we've received your order <strong>#${data.orderNumber}</strong> and are waiting for payment to be confirmed.</p>
        ${itemsTable(data.items, data.currency)}
        ${totalsTable(data)}
        ${addressBlock(data.address)}
-       ${data.deliveryEstimate ? `<p style="font-size:14px;color:#374151;margin-top:12px;">Prazo estimado de entrega: ${data.deliveryEstimate}</p>` : ""}
-       ${ctaButton("Acompanhar pedido", data.trackingUrl)}`
+       ${data.deliveryEstimate ? `<p style="font-size:14px;color:#374151;margin-top:12px;">Estimated delivery: ${data.deliveryEstimate}</p>` : ""}
+       ${ctaButton("Track order", data.trackingUrl)}`
     ),
   };
 }
 
 export function paymentConfirmedEmail(data: OrderEmailData) {
   return {
-    subject: `Pagamento confirmado — pedido #${data.orderNumber}`,
+    subject: `Payment confirmed — order #${data.orderNumber}`,
     html: layout(
-      "Pagamento confirmado!",
-      `<p style="font-size:14px;">Boas notícias, ${data.customerName}! O pagamento do pedido <strong>#${data.orderNumber}</strong> foi confirmado e já vamos preparar tudo com cuidado.</p>
+      "Payment confirmed!",
+      `<p style="font-size:14px;">Good news, ${data.customerName}! Payment for order <strong>#${data.orderNumber}</strong> has been confirmed and we're already preparing everything with care.</p>
        ${itemsTable(data.items, data.currency)}
        ${totalsTable(data)}
        ${addressBlock(data.address)}
-       ${data.deliveryEstimate ? `<p style="font-size:14px;color:#374151;margin-top:12px;">Prazo estimado de entrega: ${data.deliveryEstimate}</p>` : ""}
-       ${ctaButton("Acompanhar pedido", data.trackingUrl)}`
+       ${data.deliveryEstimate ? `<p style="font-size:14px;color:#374151;margin-top:12px;">Estimated delivery: ${data.deliveryEstimate}</p>` : ""}
+       ${ctaButton("Track order", data.trackingUrl)}`
     ),
   };
 }
 
 export function paymentFailedEmail(orderNumber: string, customerName: string, trackingUrl: string) {
   return {
-    subject: `Pagamento não aprovado — pedido #${orderNumber}`,
+    subject: `Payment not approved — order #${orderNumber}`,
     html: layout(
-      "Não conseguimos confirmar seu pagamento",
-      `<p style="font-size:14px;">Olá, ${customerName}. Não foi possível confirmar o pagamento do pedido <strong>#${orderNumber}</strong>. Nenhum valor foi cobrado.</p>
-       <p style="font-size:14px;">Você pode tentar novamente com outro cartão ou forma de pagamento.</p>
-       ${ctaButton("Tentar novamente", trackingUrl)}`
+      "We couldn't confirm your payment",
+      `<p style="font-size:14px;">Hi ${customerName}, we couldn't confirm payment for order <strong>#${orderNumber}</strong>. No charge was made.</p>
+       <p style="font-size:14px;">You can try again with a different card or payment method.</p>
+       ${ctaButton("Try again", trackingUrl)}`
     ),
   };
 }
 
 export function paymentExpiredEmail(orderNumber: string, customerName: string, trackingUrl: string) {
   return {
-    subject: `Sessão de pagamento expirada — pedido #${orderNumber}`,
+    subject: `Payment session expired — order #${orderNumber}`,
     html: layout(
-      "Sua sessão de pagamento expirou",
-      `<p style="font-size:14px;">Olá, ${customerName}. O tempo para concluir o pagamento do pedido <strong>#${orderNumber}</strong> expirou e a reserva dos produtos foi liberada.</p>
-       <p style="font-size:14px;">Se ainda deseja comprar, monte o pedido novamente.</p>
-       ${ctaButton("Voltar à loja", trackingUrl)}`
+      "Your payment session has expired",
+      `<p style="font-size:14px;">Hi ${customerName}, the time to complete payment for order <strong>#${orderNumber}</strong> has expired, and the stock reservation has been released.</p>
+       <p style="font-size:14px;">If you'd still like to buy, please place the order again.</p>
+       ${ctaButton("Back to store", trackingUrl)}`
     ),
   };
 }
 
 export function orderPreparingEmail(data: OrderEmailData) {
   return {
-    subject: `Seu pedido #${data.orderNumber} está em preparação`,
+    subject: `Your order #${data.orderNumber} is being prepared`,
     html: layout(
-      "Seu pedido está em preparação",
-      `<p style="font-size:14px;">Olá, ${data.customerName}. Seu pedido <strong>#${data.orderNumber}</strong> já está sendo preparado para o envio.</p>
-       ${ctaButton("Acompanhar pedido", data.trackingUrl)}`
+      "Your order is being prepared",
+      `<p style="font-size:14px;">Hi ${data.customerName}, your order <strong>#${data.orderNumber}</strong> is now being prepared for dispatch.</p>
+       ${ctaButton("Track order", data.trackingUrl)}`
     ),
   };
 }
@@ -197,44 +212,44 @@ export function orderShippedEmail(
   tracking: { carrier: string | null; code: string | null; url: string | null }
 ) {
   return {
-    subject: `Seu pedido #${data.orderNumber} foi enviado`,
+    subject: `Your order #${data.orderNumber} has been dispatched`,
     html: layout(
-      "Seu pedido foi enviado!",
-      `<p style="font-size:14px;">Olá, ${data.customerName}. Seu pedido <strong>#${data.orderNumber}</strong> foi enviado.</p>
+      "Your order has been dispatched!",
+      `<p style="font-size:14px;">Hi ${data.customerName}, your order <strong>#${data.orderNumber}</strong> has been dispatched.</p>
        ${
          tracking.code
            ? `<p style="font-size:14px;color:#374151;">
-                ${tracking.carrier ? `<strong>Transportadora:</strong> ${tracking.carrier}<br/>` : ""}
-                <strong>Código de rastreio:</strong> ${tracking.code}
+                ${tracking.carrier ? `<strong>Delivery company:</strong> ${tracking.carrier}<br/>` : ""}
+                <strong>Tracking number:</strong> ${tracking.code}
               </p>`
            : ""
        }
        ${addressBlock(data.address)}
-       ${ctaButton("Acompanhar entrega", tracking.url ?? data.trackingUrl)}`
+       ${ctaButton("Track delivery", tracking.url ?? data.trackingUrl)}`
     ),
   };
 }
 
 export function orderDeliveredEmail(data: OrderEmailData) {
   return {
-    subject: `Seu pedido #${data.orderNumber} foi entregue`,
+    subject: `Your order #${data.orderNumber} has been delivered`,
     html: layout(
-      "Seu pedido foi entregue!",
-      `<p style="font-size:14px;">Olá, ${data.customerName}. Nosso registro mostra que o pedido <strong>#${data.orderNumber}</strong> foi entregue. Esperamos que você aproveite!</p>
-       <p style="font-size:14px;">Qualquer problema com o produto, você pode solicitar troca ou devolução em até 7 dias.</p>
-       ${ctaButton("Ver pedido", data.trackingUrl)}`
+      "Your order has been delivered!",
+      `<p style="font-size:14px;">Hi ${data.customerName}, our records show that order <strong>#${data.orderNumber}</strong> has been delivered. We hope you love it!</p>
+       <p style="font-size:14px;">If there's any problem with your product, you can request a return in line with our Returns and Refunds Policy.</p>
+       ${ctaButton("View order", data.trackingUrl)}`
     ),
   };
 }
 
 export function orderCancelledEmail(orderNumber: string, customerName: string, trackingUrl: string, reason?: string) {
   return {
-    subject: `Pedido #${orderNumber} cancelado`,
+    subject: `Order #${orderNumber} cancelled`,
     html: layout(
-      "Seu pedido foi cancelado",
-      `<p style="font-size:14px;">Olá, ${customerName}. O pedido <strong>#${orderNumber}</strong> foi cancelado.${reason ? ` Motivo: ${reason}.` : ""}</p>
-       <p style="font-size:14px;">Se o pagamento já havia sido confirmado, o reembolso será processado — você receberá um e-mail assim que ele for concluído.</p>
-       ${ctaButton("Ver pedido", trackingUrl)}`
+      "Your order has been cancelled",
+      `<p style="font-size:14px;">Hi ${customerName}, order <strong>#${orderNumber}</strong> has been cancelled.${reason ? ` Reason: ${reason}.` : ""}</p>
+       <p style="font-size:14px;">If payment had already been confirmed, a refund will be processed — you'll receive an email once it's complete.</p>
+       ${ctaButton("View order", trackingUrl)}`
     ),
   };
 }
@@ -248,38 +263,85 @@ export function refundEmail(
   trackingUrl: string
 ) {
   return {
-    subject: `Reembolso ${isPartial ? "parcial " : ""}realizado — pedido #${orderNumber}`,
+    subject: `${isPartial ? "Partial refund" : "Refund"} issued — order #${orderNumber}`,
     html: layout(
-      `Reembolso ${isPartial ? "parcial" : "total"} realizado`,
-      `<p style="font-size:14px;">Olá, ${customerName}. Realizamos um reembolso ${isPartial ? "parcial" : "total"} de <strong>${formatCurrency(amount, currency)}</strong> referente ao pedido <strong>#${orderNumber}</strong>.</p>
-       <p style="font-size:14px;">O valor pode levar alguns dias úteis para aparecer no seu extrato, de acordo com o seu banco ou operadora do cartão.</p>
-       ${ctaButton("Ver pedido", trackingUrl)}`
+      `${isPartial ? "Partial refund" : "Refund"} issued`,
+      `<p style="font-size:14px;">Hi ${customerName}, we've issued a ${isPartial ? "partial " : ""}refund of <strong>${formatCurrency(amount, currency)}</strong> for order <strong>#${orderNumber}</strong>.</p>
+       <p style="font-size:14px;">It may take a few working days to appear on your statement, depending on your bank or card provider.</p>
+       ${ctaButton("View order", trackingUrl)}`
     ),
   };
 }
 
 export function returnReceivedEmail(orderNumber: string, customerName: string, trackingUrl: string) {
   return {
-    subject: `Recebemos a devolução do pedido #${orderNumber}`,
+    subject: `We've received your return for order #${orderNumber}`,
     html: layout(
-      "Devolução recebida",
-      `<p style="font-size:14px;">Olá, ${customerName}. Recebemos os produtos devolvidos do pedido <strong>#${orderNumber}</strong> e vamos processar o reembolso, quando aplicável.</p>
-       ${ctaButton("Ver pedido", trackingUrl)}`
+      "Return received",
+      `<p style="font-size:14px;">Hi ${customerName}, we've received the returned items for order <strong>#${orderNumber}</strong> and will process the refund where applicable.</p>
+       ${ctaButton("View order", trackingUrl)}`
     ),
   };
 }
 
-export function adminNewOrderEmail(data: {
-  orderNumber: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string | null;
-  address: OrderEmailAddress | null;
-  items: OrderEmailItem[];
-  total: number;
-  currency: string;
-  adminUrl: string;
-}) {
+export function passwordChangedEmail(customerName: string, changedAtLabel: string, supportUrl: string) {
+  return {
+    subject: "Your password has been changed",
+    html: layout(
+      "Password changed",
+      `<p style="font-size:14px;">Hi ${customerName}, your password was changed on ${changedAtLabel}.</p>
+       <p style="font-size:14px;color:#374151;">If this was you, no action is needed. If you don't recognise this change, please contact support immediately.</p>
+       ${ctaButton("Contact support", supportUrl)}`
+    ),
+  };
+}
+
+export function contactMessageReceivedEmail(customerName: string, subject: string) {
+  return {
+    subject: "We've received your message",
+    html: layout(
+      "Message received",
+      `<p style="font-size:14px;">Hi ${customerName}, we've received your message about "${subject}" and our team will get back to you shortly.</p>
+       <p style="font-size:14px;color:#374151;">This is an automatic confirmation email — there's no need to reply to it.</p>`
+    ),
+  };
+}
+
+export function adminNewOrderEmail(
+  data: {
+    orderNumber: string;
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string | null;
+    address: OrderEmailAddress | null;
+    items: OrderEmailItem[];
+    total: number;
+    currency: string;
+    adminUrl: string;
+  },
+  lang: AdminEmailLang = "pt"
+) {
+  if (lang === "en") {
+    return {
+      subject: `New order received — #${data.orderNumber}`,
+      html: layout(
+        "New paid order",
+        `<p style="font-size:14px;">A new order has been paid and needs to be prepared.</p>
+         <p style="font-size:14px;color:#374151;">
+           <strong>Order:</strong> #${data.orderNumber}<br/>
+           <strong>Customer:</strong> ${data.customerName}<br/>
+           <strong>Email:</strong> ${data.customerEmail}<br/>
+           ${data.customerPhone ? `<strong>Phone:</strong> ${data.customerPhone}<br/>` : ""}
+         </p>
+         ${itemsTable(data.items, data.currency)}
+         <p style="font-size:14px;font-weight:bold;">Total: ${formatCurrency(data.total, data.currency)}</p>
+         ${addressBlock(data.address)}
+         ${ctaButton("Open order in the panel", data.adminUrl)}`,
+        "en"
+      ),
+    };
+  }
+
   return {
     subject: `Novo pedido recebido — #${data.orderNumber}`,
     html: layout(
@@ -293,31 +355,33 @@ export function adminNewOrderEmail(data: {
        </p>
        ${itemsTable(data.items, data.currency)}
        <p style="font-size:14px;font-weight:bold;">Total: ${formatCurrency(data.total, data.currency)}</p>
-       ${addressBlock(data.address)}
-       ${ctaButton("Abrir pedido no painel", data.adminUrl)}`
+       ${addressBlock(data.address, "Endereço de entrega")}
+       ${ctaButton("Abrir pedido no painel", data.adminUrl)}`,
+      "pt"
     ),
   };
 }
 
-export function adminPaymentErrorEmail(orderNumber: string, reason: string, adminUrl: string) {
+export function adminPaymentErrorEmail(orderNumber: string, reason: string, adminUrl: string, lang: AdminEmailLang = "pt") {
+  if (lang === "en") {
+    return {
+      subject: `Warning: payment issue on order #${orderNumber}`,
+      html: layout(
+        "Payment issue",
+        `<p style="font-size:14px;">Order <strong>#${orderNumber}</strong> had a payment issue: ${reason}.</p>
+         ${ctaButton("Open order in the panel", adminUrl)}`,
+        "en"
+      ),
+    };
+  }
+
   return {
     subject: `Aviso: problema no pagamento do pedido #${orderNumber}`,
     html: layout(
       "Problema no pagamento",
       `<p style="font-size:14px;">O pedido <strong>#${orderNumber}</strong> teve um problema no pagamento: ${reason}.</p>
-       ${ctaButton("Abrir pedido no painel", adminUrl)}`
-    ),
-  };
-}
-
-export function passwordChangedEmail(customerName: string, changedAtLabel: string, supportUrl: string) {
-  return {
-    subject: "Sua senha foi alterada",
-    html: layout(
-      "Senha alterada",
-      `<p style="font-size:14px;">Olá, ${customerName}. Sua senha foi alterada em ${changedAtLabel}.</p>
-       <p style="font-size:14px;color:#374151;">Se foi você, nenhuma ação é necessária. Se não reconhece esta alteração, entre em contato com o suporte imediatamente.</p>
-       ${ctaButton("Falar com o suporte", supportUrl)}`
+       ${ctaButton("Abrir pedido no painel", adminUrl)}`,
+      "pt"
     ),
   };
 }
@@ -335,29 +399,35 @@ export function adminInviteEmail(params: {
       `<p style="font-size:14px;">${params.inviterName} convidou você para acessar o painel administrativo da loja com o papel de <strong>${params.roleLabel}</strong>.</p>
        <p style="font-size:14px;color:#374151;">Este convite expira em ${params.expiresAtLabel} e só pode ser usado uma vez.</p>
        ${ctaButton("Aceitar convite e criar senha", params.acceptUrl)}
-       <p style="font-size:12px;color:#9ca3af;margin-top:16px;">Se você não esperava este convite, ignore este e-mail.</p>`
+       <p style="font-size:12px;color:#9ca3af;margin-top:16px;">Se você não esperava este convite, ignore este e-mail.</p>`,
+      "pt"
     ),
   };
 }
 
-export function contactMessageReceivedEmail(customerName: string, subject: string) {
-  return {
-    subject: "Recebemos sua mensagem",
-    html: layout(
-      "Mensagem recebida",
-      `<p style="font-size:14px;">Olá, ${customerName}. Recebemos sua mensagem sobre "${subject}" e nossa equipe vai responder em breve.</p>
-       <p style="font-size:14px;color:#374151;">Este é um e-mail automático de confirmação — não é necessário responder a ele.</p>`
-    ),
-  };
-}
+export function lowStockAlertEmail(
+  params: { productName: string; currentQuantity: number; threshold: number; adminUrl: string },
+  lang: AdminEmailLang = "pt"
+) {
+  if (lang === "en") {
+    return {
+      subject: `Low stock: ${params.productName}`,
+      html: layout(
+        "Low stock alert",
+        `<p style="font-size:14px;">Product <strong>${params.productName}</strong> has ${params.currentQuantity} unit(s) in stock, below the configured minimum (${params.threshold}).</p>
+         ${ctaButton("View stock in the panel", params.adminUrl)}`,
+        "en"
+      ),
+    };
+  }
 
-export function lowStockAlertEmail(params: { productName: string; currentQuantity: number; threshold: number; adminUrl: string }) {
   return {
     subject: `Estoque baixo: ${params.productName}`,
     html: layout(
       "Alerta de estoque baixo",
       `<p style="font-size:14px;">O produto <strong>${params.productName}</strong> está com ${params.currentQuantity} unidade(s) em estoque, abaixo do mínimo configurado (${params.threshold}).</p>
-       ${ctaButton("Ver estoque no painel", params.adminUrl)}`
+       ${ctaButton("Ver estoque no painel", params.adminUrl)}`,
+      "pt"
     ),
   };
 }

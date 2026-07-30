@@ -1,24 +1,12 @@
-import "server-only";
+-- MascaraUK -- Prompt 7 (UK/English conversion): replaces the Portuguese
+-- legal/institutional page titles and content seeded by 0001_init.sql and
+-- 0006_legal_content.sql with the British English starter drafts now in
+-- src/lib/legal-content.ts. Still not definitive legal advice -- see the
+-- notice at the top of each text. Slugs are left unchanged (see the
+-- decision to defer route renames, tracked separately) so existing links
+-- keep working.
 
-/**
- * Real starter content for the legal/institutional pages, used both as the
- * seed for `custom_pages` (see supabase/migrations/0006_legal_content.sql
- * and 0009_uk_legal_content.sql) and as the code-level fallback in
- * src/lib/pages.ts when the database hasn't been configured yet. This is a
- * genuine starting draft based on how the store actually works today
- * (Stripe for payments, e-mail provider for transactional messages,
- * first-party analytics events stored in our own database) — NOT a
- * definitive legal document. The store owner must have it reviewed by a
- * qualified professional before relying on it, and must update any section
- * that no longer matches how the store actually operates (e.g. once a real
- * delivery carrier or marketing tool is added).
- */
-
-const LEGAL_REVIEW_NOTICE =
-  "Notice: this text is an initial template generated to help the store get started and does not constitute legal advice. Before publishing the store, ask a qualified professional (a solicitor or a firm specialising in consumer/e-commerce law) to review and adapt this content to your actual business.";
-
-export function privacyPolicyContent(): string {
-  return `${LEGAL_REVIEW_NOTICE}
+update public.custom_pages set title = 'Privacy Policy', content = $CONTENT$Notice: this text is an initial template generated to help the store get started and does not constitute legal advice. Before publishing the store, ask a qualified professional (a solicitor or a firm specialising in consumer/e-commerce law) to review and adapt this content to your actual business.
 
 1. Who we are
 This policy explains how we collect, use, store and protect the personal data of anyone who visits or buys from this store.
@@ -34,7 +22,7 @@ This policy explains how we collect, use, store and protect the personal data of
 We use this data to process orders, calculate delivery costs, issue invoices and receipts, send order e-mails (confirmation, dispatch, delivery), answer questions and, when you agree, send marketing e-mails.
 
 4. How your data is protected
-Passwords are never stored in plain text. Access to the admin panel is restricted to authorised staff, and every sensitive action is recorded in an internal history. Payment data is processed directly by Stripe — this store does not store your full card number.
+Passwords are never stored in plain text. Access to the admin panel is restricted to authorised staff, and every sensitive action is recorded in an internal history. Payment data is processed directly by Stripe -- this store does not store your full card number.
 
 5. Who we share data with
 - Stripe: payment processing.
@@ -52,11 +40,9 @@ You can request access to, correction of, or deletion of your personal data, and
 The use of cookies is described in detail in our Cookie Policy.
 
 9. Contact
-To exercise your rights or ask questions about this policy, use this store's Contact page.`;
-}
+To exercise your rights or ask questions about this policy, use this store's Contact page.$CONTENT$ where slug = 'politica-de-privacidade';
 
-export function cookiePolicyContent(): string {
-  return `${LEGAL_REVIEW_NOTICE}
+update public.custom_pages set title = 'Cookie Policy', content = $CONTENT$Notice: this text is an initial template generated to help the store get started and does not constitute legal advice. Before publishing the store, ask a qualified professional (a solicitor or a firm specialising in consumer/e-commerce law) to review and adapt this content to your actual business.
 
 1. What cookies are
 Cookies are small files stored in your browser that help a website work properly and help us understand how it is used.
@@ -71,11 +57,9 @@ Cookies are small files stored in your browser that help a website work properly
 The first time you visit the store, you can accept all cookies, reject optional cookies (keeping only essential ones), or manage your preferences category by category. You can change your choice at any time from the cookie settings in the site footer.
 
 4. Essential cookies are never switched off
-Because they are required for login, security, your basket and completing orders, essential cookies remain active even if you reject optional cookies.`;
-}
+Because they are required for login, security, your basket and completing orders, essential cookies remain active even if you reject optional cookies.$CONTENT$ where slug = 'politica-de-cookies';
 
-export function termsOfUseContent(): string {
-  return `${LEGAL_REVIEW_NOTICE}
+update public.custom_pages set title = 'Terms and Conditions', content = $CONTENT$Notice: this text is an initial template generated to help the store get started and does not constitute legal advice. Before publishing the store, ask a qualified professional (a solicitor or a firm specialising in consumer/e-commerce law) to review and adapt this content to your actual business.
 
 1. Acceptance of these terms
 By using this store, you agree to these Terms and Conditions and to our Privacy Policy.
@@ -96,11 +80,9 @@ Products in this store may be classified as an original store design, a generic 
 The store is not responsible for misuse of products outside the costume/cosplay/collectable purpose for which they are sold. Products described as decorative or non-functional props are not toys and are not weapons.
 
 7. Changes to these terms
-We may update these terms from time to time. The date of the last update is always shown at the top of this page.`;
-}
+We may update these terms from time to time. The date of the last update is always shown at the top of this page.$CONTENT$ where slug = 'termos-de-uso';
 
-export function deliveryPolicyContent(): string {
-  return `${LEGAL_REVIEW_NOTICE}
+update public.custom_pages set title = 'Delivery Information', content = $CONTENT$Notice: this text is an initial template generated to help the store get started and does not constitute legal advice. Before publishing the store, ask a qualified professional (a solicitor or a firm specialising in consumer/e-commerce law) to review and adapt this content to your actual business.
 
 1. Delivery times and costs
 The estimated delivery time and cost are calculated in your basket from your postcode, before you complete your purchase. The times shown are estimates and count from confirmation of payment, not from the date the order was placed.
@@ -115,14 +97,12 @@ Once your order has been dispatched, you will receive an e-mail with a tracking 
 If there is a significant delay or a problem with delivery, please contact us through the Contact page with your order number so we can check with the delivery company.
 
 5. What is not yet defined
-This store does not yet have a published international delivery policy or advertised delivery-company partnerships beyond what is configured in the admin panel — no delivery time or carrier promise should be relied upon beyond what is shown in the basket at the time of purchase.`;
-}
+This store does not yet have a published international delivery policy or advertised delivery-company partnerships beyond what is configured in the admin panel -- no delivery time or carrier promise should be relied upon beyond what is shown in the basket at the time of purchase.$CONTENT$ where slug = 'politica-de-entrega';
 
-export function returnsPolicyContent(): string {
-  return `${LEGAL_REVIEW_NOTICE}
+update public.custom_pages set title = 'Returns and Refunds Policy', content = $CONTENT$Notice: this text is an initial template generated to help the store get started and does not constitute legal advice. Before publishing the store, ask a qualified professional (a solicitor or a firm specialising in consumer/e-commerce law) to review and adapt this content to your actual business.
 
 1. Right to cancel
-Under UK consumer protection law, orders placed online can typically be cancelled within 14 days of receiving your goods, without needing to give a reason. This store's exact cancellation period is configured by the administrator and shown alongside this policy — always check the current period before assuming a deadline.
+Under UK consumer protection law, orders placed online can typically be cancelled within 14 days of receiving your goods, without needing to give a reason. This store's exact cancellation period is configured by the administrator and shown alongside this policy -- always check the current period before assuming a deadline.
 
 2. Faulty products
 If a product arrives faulty, damaged, or different from what was advertised, please contact us through the Contact page with your order number and photos of the issue so we can arrange a replacement, repair or refund.
@@ -137,5 +117,4 @@ Once approved, refunds are processed by Stripe back to the original payment meth
 Wherever possible, returned products should be unused and in their original packaging, except in cases of a manufacturing fault.
 
 6. What is not yet defined
-Exact refund processing times, return postage costs and any category-specific exceptions must be confirmed and configured by the store administrator before launch — this page should not promise conditions the store has not yet decided to offer.`;
-}
+Exact refund processing times, return postage costs and any category-specific exceptions must be confirmed and configured by the store administrator before launch -- this page should not promise conditions the store has not yet decided to offer.$CONTENT$ where slug = 'trocas-e-devolucoes';

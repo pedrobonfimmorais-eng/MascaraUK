@@ -6,6 +6,7 @@ import { Container } from "@/components/ui/Container";
 import { Badge } from "@/components/ui/Badge";
 import { AccountNav } from "@/components/account/AccountNav";
 import { formatCurrency } from "@/lib/utils";
+import { formatPublicDate } from "@/lib/format-date";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -60,7 +61,7 @@ export default async function AccountPage() {
                   <div>
                     <p className="font-medium text-brand-secondary">#{order.order_number}</p>
                     <p className="text-xs text-gray-500">
-                      {new Date(order.created_at).toLocaleDateString("pt-BR")}
+                      {formatPublicDate(order.created_at)}
                     </p>
                   </div>
                   <Badge tone="brand">{t(`orderStatus.${order.status}` as TranslationKey)}</Badge>
@@ -83,12 +84,13 @@ export default async function AccountPage() {
             <p className="text-sm text-gray-600">
               {mainAddress.recipient_name}
               <br />
-              {mainAddress.street}, {mainAddress.number}
-              {mainAddress.complement ? ` — ${mainAddress.complement}` : ""}
+              {mainAddress.address_line1}
+              {mainAddress.address_line2 ? `, ${mainAddress.address_line2}` : ""}
               <br />
-              {mainAddress.neighborhood} — {mainAddress.city}/{mainAddress.state}
+              {mainAddress.town_city}
+              {mainAddress.county ? `, ${mainAddress.county}` : ""}
               <br />
-              CEP {mainAddress.zip_code}
+              {mainAddress.postcode}
             </p>
           ) : (
             <p className="text-sm text-gray-500">{t("account.noAddress")}</p>

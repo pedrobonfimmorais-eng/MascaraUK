@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { PeriodFilterBar } from "@/components/analytics/PeriodFilterBar";
 import { MetricCard } from "@/components/analytics/MetricCard";
@@ -19,7 +19,7 @@ import {
 import { getApplicableAdditionalCosts } from "@/lib/analytics/costs";
 import { formatBucketLabel } from "@/lib/analytics/period";
 
-export const metadata: Metadata = { title: t("analytics.nav.overview") };
+export const metadata: Metadata = { title: ta("analytics.nav.overview") };
 
 interface AnalyticsPageProps {
   searchParams: Promise<AnalyticsSearchParams>;
@@ -57,7 +57,7 @@ export default async function AnalyticsOverviewPage({ searchParams }: AnalyticsP
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-brand-secondary">{t("analytics.nav.overview")}</h1>
+      <h1 className="text-2xl font-bold text-brand-secondary">{ta("analytics.nav.overview")}</h1>
       <AnalyticsNav active="geral" />
       <PeriodFilterBar
         period={period.key}
@@ -71,152 +71,152 @@ export default async function AnalyticsOverviewPage({ searchParams }: AnalyticsP
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          label={t("analytics.metrics.grossRevenue")}
+          label={ta("analytics.metrics.grossRevenue")}
           value={formatCurrency(current.grossRevenue)}
-          explanation={t("analytics.explain.grossRevenue")}
+          explanation={ta("analytics.explain.grossRevenue")}
           changePercent={changePercent(current.grossRevenue, previous.grossRevenue)}
           href="/admin/analytics/vendas"
         />
         <MetricCard
-          label={t("analytics.metrics.netRevenue")}
+          label={ta("analytics.metrics.netRevenue")}
           value={formatCurrency(netRevenueEstimate)}
-          explanation={t("analytics.explain.netRevenue")}
+          explanation={ta("analytics.explain.netRevenue")}
           href="/admin/analytics/vendas"
         />
         <MetricCard
-          label={t("analytics.metrics.orderCount")}
+          label={ta("analytics.metrics.orderCount")}
           value={String(orderCounts.total)}
-          explanation={t("analytics.explain.orderCount")}
+          explanation={ta("analytics.explain.orderCount")}
           href="/admin/pedidos"
         />
         <MetricCard
-          label={t("analytics.metrics.paidOrders")}
+          label={ta("analytics.metrics.paidOrders")}
           value={String(orderCounts.paid)}
-          explanation={t("analytics.explain.paidOrders")}
+          explanation={ta("analytics.explain.paidOrders")}
           href="/admin/pedidos?payment=pago"
         />
         <MetricCard
-          label={t("analytics.metrics.cancelledOrders")}
+          label={ta("analytics.metrics.cancelledOrders")}
           value={String(orderCounts.cancelled)}
-          explanation={t("analytics.explain.cancelledOrders")}
+          explanation={ta("analytics.explain.cancelledOrders")}
           href="/admin/pedidos?status=cancelado"
         />
         <MetricCard
-          label={t("analytics.metrics.refundedOrders")}
+          label={ta("analytics.metrics.refundedOrders")}
           value={String(orderCounts.refunded)}
-          explanation={t("analytics.explain.refundedOrders")}
+          explanation={ta("analytics.explain.refundedOrders")}
           href="/admin/pedidos?payment=reembolsado"
         />
         <MetricCard
-          label={t("analytics.metrics.itemsSold")}
+          label={ta("analytics.metrics.itemsSold")}
           value={String(current.itemsSold)}
-          explanation={t("analytics.explain.itemsSold")}
+          explanation={ta("analytics.explain.itemsSold")}
           href="/admin/analytics/produtos"
         />
         <MetricCard
-          label={t("analytics.metrics.aov")}
+          label={ta("analytics.metrics.aov")}
           value={formatCurrency(current.averageOrderValue)}
-          explanation={t("analytics.explain.aov")}
+          explanation={ta("analytics.explain.aov")}
           changePercent={changePercent(current.averageOrderValue, previous.averageOrderValue)}
           href="/admin/analytics/vendas"
         />
         <MetricCard
-          label={t("analytics.metrics.totalCustomers")}
+          label={ta("analytics.metrics.totalCustomers")}
           value={String(customerCounts.totalCustomers)}
-          explanation={t("analytics.explain.totalCustomers")}
+          explanation={ta("analytics.explain.totalCustomers")}
           href="/admin/analytics/clientes"
         />
         <MetricCard
-          label={t("analytics.metrics.newCustomers")}
+          label={ta("analytics.metrics.newCustomers")}
           value={String(customerCounts.newCustomers)}
-          explanation={t("analytics.explain.newCustomers")}
+          explanation={ta("analytics.explain.newCustomers")}
           href="/admin/analytics/clientes"
         />
         <MetricCard
-          label={t("analytics.metrics.recurringCustomers")}
+          label={ta("analytics.metrics.recurringCustomers")}
           value={String(customerCounts.recurringCustomers)}
-          explanation={t("analytics.explain.recurringCustomers")}
+          explanation={ta("analytics.explain.recurringCustomers")}
           href="/admin/analytics/clientes"
         />
         <MetricCard
-          label={t("analytics.metrics.conversionRate")}
-          value={conversion.conversionRate == null ? t("analytics.insufficientData") : `${conversion.conversionRate}%`}
-          explanation={t("analytics.explain.conversionRate")}
+          label={ta("analytics.metrics.conversionRate")}
+          value={conversion.conversionRate == null ? ta("analytics.insufficientData") : `${conversion.conversionRate}%`}
+          explanation={ta("analytics.explain.conversionRate")}
         />
         <MetricCard
-          label={t("analytics.metrics.abandonedCarts")}
+          label={ta("analytics.metrics.abandonedCarts")}
           value={String(abandonedCarts)}
-          explanation={t("analytics.explain.abandonedCarts")}
+          explanation={ta("analytics.explain.abandonedCarts")}
           href="/admin/analytics/carrinhos"
         />
         <MetricCard
-          label={t("analytics.metrics.outOfStock")}
+          label={ta("analytics.metrics.outOfStock")}
           value={String(stockAlerts.outOfStock)}
-          explanation={t("analytics.explain.outOfStock")}
+          explanation={ta("analytics.explain.outOfStock")}
           href="/admin/analytics/estoque"
         />
         <MetricCard
-          label={t("analytics.metrics.lowStock")}
+          label={ta("analytics.metrics.lowStock")}
           value={String(stockAlerts.lowStock)}
-          explanation={t("analytics.explain.lowStock")}
+          explanation={ta("analytics.explain.lowStock")}
           href="/admin/analytics/estoque"
         />
       </div>
 
       {additionalCosts.total > 0 || current.refundTotal > 0 ? (
-        <p className="text-xs text-gray-500">{t("analytics.netRevenueDisclaimer")}</p>
+        <p className="text-xs text-gray-500">{ta("analytics.netRevenueDisclaimer")}</p>
       ) : null}
 
       <section className="rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.charts.revenuePerDay")}</h2>
+        <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.charts.revenuePerDay")}</h2>
         <AnalyticsChart
           labels={labels}
-          series={[{ key: "revenue", label: t("analytics.charts.revenuePerDay"), color: "#7c3aed", values: series.map((p) => p.revenue), isCurrency: true }]}
+          series={[{ key: "revenue", label: ta("analytics.charts.revenuePerDay"), color: "#7c3aed", values: series.map((p) => p.revenue), isCurrency: true }]}
         />
       </section>
 
       <section className="rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.charts.ordersPerDay")}</h2>
+        <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.charts.ordersPerDay")}</h2>
         <AnalyticsChart
           labels={labels}
-          series={[{ key: "orders", label: t("analytics.charts.ordersPerDay"), color: "#111827", values: series.map((p) => p.orders) }]}
+          series={[{ key: "orders", label: ta("analytics.charts.ordersPerDay"), color: "#111827", values: series.map((p) => p.orders) }]}
         />
       </section>
 
       <section className="rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.charts.itemsSoldPerDay")}</h2>
+        <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.charts.itemsSoldPerDay")}</h2>
         <AnalyticsChart
           labels={labels}
-          series={[{ key: "items", label: t("analytics.charts.itemsSoldPerDay"), color: "#059669", values: series.map((p) => p.itemsSold) }]}
+          series={[{ key: "items", label: ta("analytics.charts.itemsSoldPerDay"), color: "#059669", values: series.map((p) => p.itemsSold) }]}
         />
       </section>
 
       <section className="rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.charts.aovPerDay")}</h2>
+        <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.charts.aovPerDay")}</h2>
         <AnalyticsChart
           labels={labels}
-          series={[{ key: "aov", label: t("analytics.charts.aovPerDay"), color: "#d97706", values: series.map((p) => p.averageOrderValue), isCurrency: true }]}
+          series={[{ key: "aov", label: ta("analytics.charts.aovPerDay"), color: "#d97706", values: series.map((p) => p.averageOrderValue), isCurrency: true }]}
         />
       </section>
 
       <section className="rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.charts.customers")}</h2>
+        <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.charts.customers")}</h2>
         <AnalyticsChart
           labels={labels}
           series={[
-            { key: "new", label: t("analytics.metrics.newCustomers"), color: "#2563eb", values: series.map((p) => p.newCustomers) },
-            { key: "recurring", label: t("analytics.metrics.recurringCustomers"), color: "#7c3aed", values: series.map((p) => p.recurringCustomers) },
+            { key: "new", label: ta("analytics.metrics.newCustomers"), color: "#2563eb", values: series.map((p) => p.newCustomers) },
+            { key: "recurring", label: ta("analytics.metrics.recurringCustomers"), color: "#7c3aed", values: series.map((p) => p.recurringCustomers) },
           ]}
         />
       </section>
 
       <section className="rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.charts.refundsAndCancellations")}</h2>
+        <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.charts.refundsAndCancellations")}</h2>
         <AnalyticsChart
           labels={labels}
           series={[
-            { key: "refunds", label: t("orderStatus.cancelado"), color: "#dc2626", values: series.map((p) => p.cancellations) },
-            { key: "refundValue", label: t("account.refunds"), color: "#b91c1c", values: series.map((p) => p.refunds), isCurrency: true },
+            { key: "refunds", label: ta("orderStatus.cancelado"), color: "#dc2626", values: series.map((p) => p.cancellations) },
+            { key: "refundValue", label: ta("account.refunds"), color: "#b91c1c", values: series.map((p) => p.refunds), isCurrency: true },
           ]}
         />
       </section>

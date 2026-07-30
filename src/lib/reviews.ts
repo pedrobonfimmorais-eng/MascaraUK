@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { t } from "@/i18n";
 
 export interface ProductReview {
   id: string;
@@ -51,7 +52,7 @@ export async function getRecentApprovedReviews(limit = 6): Promise<HomeReview[]>
           rating: review.rating,
           title: review.title,
           comment: review.comment,
-          customerName: review.customer_name ?? "Cliente",
+          customerName: review.customer_name ?? t("product.defaultCustomerName"),
           isVerifiedPurchase: review.is_verified_purchase,
           createdAt: review.created_at,
           productName: product.name,
@@ -85,7 +86,7 @@ export async function getProductReviews(
       rating: r.rating,
       title: r.title,
       comment: r.comment,
-      customerName: r.customer_name ?? "Cliente",
+      customerName: r.customer_name ?? t("product.defaultCustomerName"),
       isVerifiedPurchase: r.is_verified_purchase,
       createdAt: r.created_at,
     }));

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { PeriodFilterBar } from "@/components/analytics/PeriodFilterBar";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -9,7 +9,7 @@ import { formatCurrency } from "@/lib/utils";
 import { parseAnalyticsSearchParams, type AnalyticsSearchParams } from "@/lib/analytics/request-params";
 import { getProductPerformance, sortProductPerformance, type ProductSortKey } from "@/lib/analytics/products";
 
-export const metadata: Metadata = { title: t("analytics.nav.products") };
+export const metadata: Metadata = { title: ta("analytics.nav.products") };
 
 interface ProductsAnalyticsPageProps {
   searchParams: Promise<AnalyticsSearchParams & { ordenar?: string; q?: string }>;
@@ -38,7 +38,7 @@ export default async function ProductsAnalyticsPage({ searchParams }: ProductsAn
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-brand-secondary">{t("analytics.nav.products")}</h1>
+      <h1 className="text-2xl font-bold text-brand-secondary">{ta("analytics.nav.products")}</h1>
       <AnalyticsNav active="produtos" />
       <PeriodFilterBar
         period={period.key}
@@ -53,7 +53,7 @@ export default async function ProductsAnalyticsPage({ searchParams }: ProductsAn
         <input
           name="q"
           defaultValue={rawParams.q}
-          placeholder={t("analytics.products.searchPlaceholder")}
+          placeholder={ta("analytics.products.searchPlaceholder")}
           className="rounded-lg border border-gray-300 px-3 py-2"
         />
         <select name="ordenar" defaultValue={sort} className="rounded-lg border border-gray-300 px-3 py-2">
@@ -64,26 +64,26 @@ export default async function ProductsAnalyticsPage({ searchParams }: ProductsAn
           ))}
         </select>
         <button type="submit" className="rounded-lg bg-brand-primary px-4 py-2 font-medium text-white">
-          {t("products.applyFilters")}
+          {ta("products.applyFilters")}
         </button>
       </form>
 
       {sorted.length === 0 ? (
-        <EmptyState title={t("analytics.insufficientData")} />
+        <EmptyState title={ta("analytics.insufficientData")} />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
-                <th className="px-4 py-3">{t("products.pageTitle")}</th>
-                <th className="px-4 py-3">{t("analytics.products.columnViews")}</th>
-                <th className="px-4 py-3">{t("analytics.products.columnCartAdds")}</th>
-                <th className="px-4 py-3">{t("analytics.products.columnCheckouts")}</th>
-                <th className="px-4 py-3">{t("analytics.products.columnPurchases")}</th>
-                <th className="px-4 py-3">{t("analytics.metrics.itemsSold")}</th>
-                <th className="px-4 py-3">{t("admin.orders.columnTotal")}</th>
-                <th className="px-4 py-3">{t("analytics.products.columnConversion")}</th>
-                <th className="px-4 py-3">{t("admin.sidebar.inventory")}</th>
+                <th className="px-4 py-3">{ta("products.pageTitle")}</th>
+                <th className="px-4 py-3">{ta("analytics.products.columnViews")}</th>
+                <th className="px-4 py-3">{ta("analytics.products.columnCartAdds")}</th>
+                <th className="px-4 py-3">{ta("analytics.products.columnCheckouts")}</th>
+                <th className="px-4 py-3">{ta("analytics.products.columnPurchases")}</th>
+                <th className="px-4 py-3">{ta("analytics.metrics.itemsSold")}</th>
+                <th className="px-4 py-3">{ta("admin.orders.columnTotal")}</th>
+                <th className="px-4 py-3">{ta("analytics.products.columnConversion")}</th>
+                <th className="px-4 py-3">{ta("admin.sidebar.inventory")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -109,7 +109,7 @@ export default async function ProductsAnalyticsPage({ searchParams }: ProductsAn
                   <td className="px-4 py-3">{formatCurrency(product.revenue)}</td>
                   <td className="px-4 py-3">{product.conversionRate == null ? "—" : `${product.conversionRate}%`}</td>
                   <td className="px-4 py-3">
-                    {product.stock <= 0 ? <Badge tone="danger">{t("product.outOfStock")}</Badge> : product.stock}
+                    {product.stock <= 0 ? <Badge tone="danger">{ta("product.outOfStock")}</Badge> : product.stock}
                   </td>
                 </tr>
               ))}

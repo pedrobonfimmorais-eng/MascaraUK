@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { t, type TranslationKey } from "@/i18n";
+import { ta, type TranslationKey } from "@/i18n";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { OrderStatus, PaymentStatus } from "@/types/database";
 
-export const metadata: Metadata = { title: t("admin.sidebar.orders") };
+export const metadata: Metadata = { title: ta("admin.sidebar.orders") };
 
 const ORDER_STATUSES: OrderStatus[] = [
   "recebido",
@@ -80,61 +80,61 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-brand-secondary">{t("admin.sidebar.orders")}</h1>
+      <h1 className="text-2xl font-bold text-brand-secondary">{ta("admin.sidebar.orders")}</h1>
 
       <form className="flex flex-wrap gap-3 rounded-xl border border-gray-200 p-4 text-sm" method="get">
         <input
           name="q"
           defaultValue={q}
-          placeholder={t("admin.orders.searchPlaceholder")}
+          placeholder={ta("admin.orders.searchPlaceholder")}
           className="rounded-lg border border-gray-300 px-3 py-2 focus:border-brand-primary focus:outline-none"
         />
         <select name="status" defaultValue={status ?? ""} className="rounded-lg border border-gray-300 px-3 py-2">
-          <option value="">{t("admin.orders.allOrderStatuses")}</option>
+          <option value="">{ta("admin.orders.allOrderStatuses")}</option>
           {ORDER_STATUSES.map((value) => (
             <option key={value} value={value}>
-              {t(`orderStatus.${value}` as TranslationKey)}
+              {ta(`orderStatus.${value}` as TranslationKey)}
             </option>
           ))}
         </select>
         <select name="payment" defaultValue={payment ?? ""} className="rounded-lg border border-gray-300 px-3 py-2">
-          <option value="">{t("admin.orders.allPaymentStatuses")}</option>
+          <option value="">{ta("admin.orders.allPaymentStatuses")}</option>
           {PAYMENT_STATUSES.map((value) => (
             <option key={value} value={value}>
-              {t(`paymentStatus.${value}` as TranslationKey)}
+              {ta(`paymentStatus.${value}` as TranslationKey)}
             </option>
           ))}
         </select>
         <input name="from" type="date" defaultValue={from} className="rounded-lg border border-gray-300 px-3 py-2" />
         <input name="to" type="date" defaultValue={to} className="rounded-lg border border-gray-300 px-3 py-2" />
         <select name="sort" defaultValue={sort ?? "newest"} className="rounded-lg border border-gray-300 px-3 py-2">
-          <option value="newest">{t("admin.orders.sortNewest")}</option>
-          <option value="oldest">{t("admin.orders.sortOldest")}</option>
-          <option value="highest">{t("admin.orders.sortHighest")}</option>
-          <option value="lowest">{t("admin.orders.sortLowest")}</option>
+          <option value="newest">{ta("admin.orders.sortNewest")}</option>
+          <option value="oldest">{ta("admin.orders.sortOldest")}</option>
+          <option value="highest">{ta("admin.orders.sortHighest")}</option>
+          <option value="lowest">{ta("admin.orders.sortLowest")}</option>
         </select>
         <button type="submit" className="rounded-lg bg-brand-primary px-4 py-2 font-medium text-white">
-          {t("products.applyFilters")}
+          {ta("products.applyFilters")}
         </button>
         <Link href="/admin/pedidos" className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700">
-          {t("products.clearFilters")}
+          {ta("products.clearFilters")}
         </Link>
       </form>
 
       {!orders || orders.length === 0 ? (
-        <EmptyState title={t("admin.empty.orders")} />
+        <EmptyState title={ta("admin.empty.orders")} />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
-                <th className="px-4 py-3">{t("admin.orders.columnOrder")}</th>
-                <th className="px-4 py-3">{t("admin.orders.columnCustomer")}</th>
-                <th className="px-4 py-3">{t("admin.orders.columnDate")}</th>
-                <th className="px-4 py-3">{t("account.orderStatus")}</th>
-                <th className="px-4 py-3">{t("admin.orders.columnPayment")}</th>
-                <th className="px-4 py-3">{t("admin.orders.columnTracking")}</th>
-                <th className="px-4 py-3">{t("admin.orders.columnTotal")}</th>
+                <th className="px-4 py-3">{ta("admin.orders.columnOrder")}</th>
+                <th className="px-4 py-3">{ta("admin.orders.columnCustomer")}</th>
+                <th className="px-4 py-3">{ta("admin.orders.columnDate")}</th>
+                <th className="px-4 py-3">{ta("account.orderStatus")}</th>
+                <th className="px-4 py-3">{ta("admin.orders.columnPayment")}</th>
+                <th className="px-4 py-3">{ta("admin.orders.columnTracking")}</th>
+                <th className="px-4 py-3">{ta("admin.orders.columnTotal")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -154,10 +154,10 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                     {new Date(order.created_at).toLocaleDateString("pt-BR")}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge tone="brand">{t(`orderStatus.${order.status}` as TranslationKey)}</Badge>
+                    <Badge tone="brand">{ta(`orderStatus.${order.status}` as TranslationKey)}</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge tone="neutral">{t(`paymentStatus.${order.payment_status}` as TranslationKey)}</Badge>
+                    <Badge tone="neutral">{ta(`paymentStatus.${order.payment_status}` as TranslationKey)}</Badge>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">{order.tracking_code ?? "—"}</td>
                   <td className="px-4 py-3 font-medium">{formatCurrency(order.total)}</td>

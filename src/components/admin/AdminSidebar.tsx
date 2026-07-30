@@ -1,20 +1,20 @@
 import Link from "next/link";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { hasPermission, type Capability, type PermissionCheckable } from "@/lib/permissions";
 
 const links: { href: string; label: string; requires?: Capability }[] = [
-  { href: "/admin", label: t("admin.sidebar.dashboard") },
-  { href: "/admin/produtos", label: t("admin.sidebar.products"), requires: "products.manage" },
-  { href: "/admin/categorias", label: t("admin.sidebar.categories"), requires: "products.manage" },
-  { href: "/admin/pedidos", label: t("admin.sidebar.orders"), requires: "orders.view" },
-  { href: "/admin/cupons", label: t("admin.sidebar.coupons"), requires: "promotions.manage" },
-  { href: "/admin/banners", label: t("admin.sidebar.banners"), requires: "promotions.manage" },
-  { href: "/admin/mensagens", label: t("admin.sidebar.messages"), requires: "messages.manage" },
-  { href: "/admin/analytics", label: t("admin.sidebar.analytics"), requires: "analytics.view" },
-  { href: "/admin/relatorios", label: t("analytics.nav.reports"), requires: "reports.export" },
-  { href: "/admin/atividades", label: t("admin.sidebar.activities"), requires: "activities.view" },
-  { href: "/admin/administradores", label: t("admin.administrators.title"), requires: "admins.manage" },
-  { href: "/admin/configuracoes", label: t("admin.sidebar.settings"), requires: "settings.manage" },
+  { href: "/admin", label: ta("admin.sidebar.dashboard") },
+  { href: "/admin/produtos", label: ta("admin.sidebar.products"), requires: "products.manage" },
+  { href: "/admin/categorias", label: ta("admin.sidebar.categories"), requires: "products.manage" },
+  { href: "/admin/pedidos", label: ta("admin.sidebar.orders"), requires: "orders.view" },
+  { href: "/admin/cupons", label: ta("admin.sidebar.coupons"), requires: "promotions.manage" },
+  { href: "/admin/banners", label: ta("admin.sidebar.banners"), requires: "promotions.manage" },
+  { href: "/admin/mensagens", label: ta("admin.sidebar.messages"), requires: "messages.manage" },
+  { href: "/admin/analytics", label: ta("admin.sidebar.analytics"), requires: "analytics.view" },
+  { href: "/admin/relatorios", label: ta("analytics.nav.reports"), requires: "reports.export" },
+  { href: "/admin/atividades", label: ta("admin.sidebar.activities"), requires: "activities.view" },
+  { href: "/admin/administradores", label: ta("admin.administrators.title"), requires: "admins.manage" },
+  { href: "/admin/configuracoes", label: ta("admin.sidebar.settings"), requires: "settings.manage" },
 ];
 
 export function AdminSidebar({ user }: { user: PermissionCheckable }) {

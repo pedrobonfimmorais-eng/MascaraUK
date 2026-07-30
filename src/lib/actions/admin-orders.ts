@@ -34,13 +34,13 @@ function toEmailAddress(snapshot: Record<string, unknown> | null): OrderEmailAdd
   if (!snapshot) return null;
   return {
     recipientName: String(snapshot.recipient_name ?? ""),
-    street: String(snapshot.street ?? ""),
-    number: String(snapshot.number ?? ""),
-    complement: (snapshot.complement as string | null) ?? null,
-    neighborhood: String(snapshot.neighborhood ?? ""),
-    city: String(snapshot.city ?? ""),
-    state: String(snapshot.state ?? ""),
-    zipCode: String(snapshot.zip_code ?? ""),
+    companyName: (snapshot.company_name as string | null) ?? null,
+    addressLine1: String(snapshot.address_line1 ?? ""),
+    addressLine2: (snapshot.address_line2 as string | null) ?? null,
+    townCity: String(snapshot.town_city ?? ""),
+    county: (snapshot.county as string | null) ?? null,
+    postcode: String(snapshot.postcode ?? ""),
+    country: String(snapshot.country ?? "United Kingdom"),
   };
 }
 

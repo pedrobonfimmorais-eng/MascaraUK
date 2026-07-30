@@ -59,7 +59,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     category: product.categoryName ?? undefined,
     offers: {
       "@type": "Offer",
-      priceCurrency: "BRL",
+      priceCurrency: "GBP",
       price: product.price.toFixed(2),
       availability:
         product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",

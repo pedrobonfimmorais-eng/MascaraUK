@@ -47,12 +47,15 @@ export function AddressManager({ addresses }: { addresses: Address[] }) {
             <p className="mt-1 text-sm text-gray-600">
               {address.recipient_name} — {address.phone}
               <br />
-              {address.street}, {address.number}
-              {address.complement ? ` — ${address.complement}` : ""}
+              {address.address_line1}
+              {address.address_line2 ? `, ${address.address_line2}` : ""}
               <br />
-              {address.neighborhood} — {address.city}/{address.state}
+              {address.town_city}
+              {address.county ? `, ${address.county}` : ""}
               <br />
-              CEP {address.zip_code}
+              {address.postcode}
+              <br />
+              {address.country}
             </p>
 
             <div className="mt-3 flex flex-wrap gap-2">

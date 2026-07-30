@@ -8,11 +8,6 @@ import { Button } from "@/components/ui/Button";
 
 const initialState: AddressActionState = { error: null };
 
-const BRAZILIAN_STATES = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
-  "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-];
-
 export function AddressForm({
   address,
   action,
@@ -23,7 +18,7 @@ export function AddressForm({
   onSuccess?: () => void;
 }) {
   const [state, formAction, isPending] = useActionState(action, initialState);
-  const [zip, setZip] = useState(address?.zip_code ?? "");
+  const [postcode, setPostcode] = useState(address?.postcode ?? "");
 
   useEffect(() => {
     if (state.success && onSuccess) onSuccess();
@@ -66,104 +61,80 @@ export function AddressForm({
         </label>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
-          {t("checkout.zipCode")}
-          <input
-            required
-            name="zipCode"
-            type="text"
-            inputMode="numeric"
-            maxLength={9}
-            value={zip}
-            onChange={(event) => setZip(event.target.value)}
-            placeholder="00000-000"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-gray-700 sm:col-span-2">
-          {t("checkout.street")}
-          <input
-            required
-            name="street"
-            type="text"
-            defaultValue={address?.street ?? ""}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-          />
-        </label>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
-          {t("checkout.number")}
-          <input
-            required
-            name="number"
-            type="text"
-            defaultValue={address?.number ?? ""}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
-          {t("checkout.complement")} ({t("common.optional")})
-          <input
-            name="complement"
-            type="text"
-            defaultValue={address?.complement ?? ""}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-          />
-        </label>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
-          {t("checkout.neighborhood")}
-          <input
-            required
-            name="neighborhood"
-            type="text"
-            defaultValue={address?.neighborhood ?? ""}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
-          {t("checkout.city")}
-          <input
-            required
-            name="city"
-            type="text"
-            defaultValue={address?.city ?? ""}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
-          {t("checkout.state")}
-          <select
-            required
-            name="state"
-            defaultValue={address?.state ?? ""}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-          >
-            <option value="" disabled>
-              {t("account.selectState")}
-            </option>
-            {BRAZILIAN_STATES.map((uf) => (
-              <option key={uf} value={uf}>
-                {uf}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <input type="hidden" name="country" value="BR" />
+      <label className="flex flex-col gap-1 text-sm text-gray-700">
+        {t("checkout.companyName")} ({t("common.optional")})
+        <input
+          name="companyName"
+          type="text"
+          defaultValue={address?.company_name ?? ""}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+        />
+      </label>
 
       <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("account.addressReference")} ({t("common.optional")})
+        {t("checkout.addressLine1")}
         <input
-          name="reference"
+          required
+          name="addressLine1"
           type="text"
-          defaultValue={address?.reference ?? ""}
+          defaultValue={address?.address_line1 ?? ""}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm text-gray-700">
+        {t("checkout.addressLine2")} ({t("common.optional")})
+        <input
+          name="addressLine2"
+          type="text"
+          defaultValue={address?.address_line2 ?? ""}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+        />
+      </label>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <label className="flex flex-col gap-1 text-sm text-gray-700">
+          {t("checkout.townCity")}
+          <input
+            required
+            name="townCity"
+            type="text"
+            defaultValue={address?.town_city ?? ""}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-gray-700">
+          {t("checkout.county")} ({t("common.optional")})
+          <input
+            name="county"
+            type="text"
+            defaultValue={address?.county ?? ""}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-gray-700">
+          {t("checkout.postcode")}
+          <input
+            required
+            name="postcode"
+            type="text"
+            maxLength={8}
+            value={postcode}
+            onChange={(event) => setPostcode(event.target.value)}
+            placeholder="SW1A 1AA"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase focus:border-brand-primary focus:outline-none"
+          />
+        </label>
+      </div>
+
+      <input type="hidden" name="country" value="United Kingdom" />
+
+      <label className="flex flex-col gap-1 text-sm text-gray-700">
+        {t("checkout.deliveryInstructions")} ({t("common.optional")})
+        <input
+          name="deliveryInstructions"
+          type="text"
+          defaultValue={address?.delivery_instructions ?? ""}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>

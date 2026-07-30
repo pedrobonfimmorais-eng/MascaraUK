@@ -121,7 +121,17 @@ export type Address = {
   user_id: string;
   label: string | null;
   recipient_name: string;
+  company_name: string | null;
   phone: string | null;
+  /** UK address fields (from migration 0007) — used by every current form. */
+  address_line1: string;
+  address_line2: string | null;
+  town_city: string;
+  county: string | null;
+  postcode: string;
+  country: string;
+  delivery_instructions: string | null;
+  /** Legacy Brazilian-format columns, kept for backward compatibility with pre-Prompt-7 rows. No longer written by any form. */
   zip_code: string;
   street: string;
   number: string;
@@ -129,7 +139,6 @@ export type Address = {
   neighborhood: string;
   city: string;
   state: string;
-  country: string;
   reference: string | null;
   is_default: boolean;
   is_shipping_default: boolean;

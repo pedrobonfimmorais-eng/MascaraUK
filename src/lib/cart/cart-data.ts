@@ -4,6 +4,7 @@ import { getGuestSessionId, getOrCreateGuestSessionId } from "@/lib/cart/session
 import { computePricing } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
 import { getStoreCurrency } from "@/lib/store-settings";
+import { t } from "@/i18n";
 import type { Cart, DiscountType } from "@/types/database";
 
 export interface ValidatedCartItem {
@@ -34,9 +35,12 @@ export interface AppliedCoupon {
 export interface ShippingRuleOption {
   id: string;
   label: string;
+  description?: string;
   rate: number;
   estimate_days_min: number;
   estimate_days_max: number;
+  tracking_included?: boolean;
+  is_active?: boolean;
 }
 
 export interface ShippingRules {
@@ -82,13 +86,13 @@ function isSupabaseConfigured() {
 }
 
 const FALLBACK_SHIPPING_RULES: ShippingRules = {
-  free_shipping_threshold: 250,
-  default_rate: 19.9,
-  default_estimate_days_min: 5,
-  default_estimate_days_max: 10,
+  free_shipping_threshold: 50,
+  default_rate: 3.95,
+  default_estimate_days_min: 3,
+  default_estimate_days_max: 5,
   options: [
-    { id: "standard", label: "Entrega padrão", rate: 19.9, estimate_days_min: 5, estimate_days_max: 10 },
-    { id: "express", label: "Entrega expressa", rate: 34.9, estimate_days_min: 2, estimate_days_max: 4 },
+    { id: "standard", label: "Standard Delivery", rate: 3.95, estimate_days_min: 3, estimate_days_max: 5, tracking_included: false, is_active: true },
+    { id: "express", label: "Express Delivery", rate: 6.95, estimate_days_min: 1, estimate_days_max: 2, tracking_included: true, is_active: true },
   ],
 };
 
@@ -115,7 +119,8 @@ async function computeShipping(params: {
   freeShippingFromCoupon: boolean;
 }): Promise<ShippingEstimate> {
   const rules = await getShippingRules();
-  const option = rules.options.find((o) => o.id === params.optionId) ?? rules.options[0];
+  const activeOptions = rules.options.filter((o) => o.is_active !== false);
+  const option = activeOptions.find((o) => o.id === params.optionId) ?? activeOptions[0];
   const isFreeByThreshold = params.subtotalAfterDiscount >= rules.free_shipping_threshold;
   const isFree = params.freeShippingFromCoupon || isFreeByThreshold;
 
@@ -125,7 +130,7 @@ async function computeShipping(params: {
     estimateDaysMax: option?.estimate_days_max ?? rules.default_estimate_days_max,
     isFree,
     freeShippingThreshold: rules.free_shipping_threshold,
-    options: rules.options,
+    options: activeOptions,
   };
 }
 
@@ -185,7 +190,7 @@ export async function ensureCart(): Promise<Cart> {
       .insert({ user_id: user.id })
       .select("*")
       .single();
-    if (error || !created) throw new Error("Não foi possível criar o carrinho.");
+    if (error || !created) throw new Error(t("cart.cartCreateFailed"));
     return created;
   }
 
@@ -202,7 +207,7 @@ export async function ensureCart(): Promise<Cart> {
     .insert({ session_id: sessionId })
     .select("*")
     .single();
-  if (error || !created) throw new Error("Não foi possível criar o carrinho.");
+  if (error || !created) throw new Error(t("cart.cartCreateFailed"));
   return created;
 }
 
@@ -225,24 +230,24 @@ async function evaluateCoupon(
     .maybeSingle();
 
   if (!coupon || !coupon.is_active) {
-    return { coupon: null, discount: 0, error: "Cupom inválido." };
+    return { coupon: null, discount: 0, error: t("cart.couponInvalid") };
   }
 
   const now = Date.now();
   if (coupon.starts_at && new Date(coupon.starts_at).getTime() > now) {
-    return { coupon: null, discount: 0, error: "Cupom ainda não está disponível." };
+    return { coupon: null, discount: 0, error: t("cart.couponNotYetAvailable") };
   }
   if (coupon.expires_at && new Date(coupon.expires_at).getTime() < now) {
-    return { coupon: null, discount: 0, error: "Cupom expirado." };
+    return { coupon: null, discount: 0, error: t("cart.couponExpired") };
   }
   if (coupon.max_uses != null && coupon.used_count >= coupon.max_uses) {
-    return { coupon: null, discount: 0, error: "Cupom esgotado." };
+    return { coupon: null, discount: 0, error: t("cart.couponExhausted") };
   }
   if (coupon.min_order_value != null && subtotal < coupon.min_order_value) {
     return {
       coupon: null,
       discount: 0,
-      error: `Este cupom exige um pedido mínimo de ${formatCurrency(coupon.min_order_value)}.`,
+      error: t("cart.couponMinOrderValue", { value: formatCurrency(coupon.min_order_value) }),
     };
   }
 
@@ -255,7 +260,7 @@ async function evaluateCoupon(
       .reduce((sum, item) => sum + item.lineTotal, 0);
 
     if (eligibleSubtotal <= 0) {
-      return { coupon: null, discount: 0, error: "Este cupom não se aplica aos produtos do carrinho." };
+      return { coupon: null, discount: 0, error: t("cart.couponNotApplicable") };
     }
   }
 
@@ -378,7 +383,7 @@ export async function getValidatedCart(): Promise<ValidatedCart> {
         productId: row.product_id,
         variantId: row.variant_id,
         productSlug: product?.slug ?? "",
-        name: product?.name ?? "Produto indisponível",
+        name: product?.name ?? t("cart.unavailableProductName"),
         variantLabel,
         sku: variant?.sku ?? product?.sku ?? null,
         imageUrl: null,

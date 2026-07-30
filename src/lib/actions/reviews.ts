@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
+import { t } from "@/i18n";
 
 export interface ReviewActionState {
   error: string | null;
@@ -15,7 +16,7 @@ export async function submitReview(
 ): Promise<ReviewActionState> {
   const user = await getCurrentUser();
   if (!user) {
-    return { error: "Entre na sua conta para avaliar este produto." };
+    return { error: t("product.reviewLoginRequired") };
   }
 
   const productId = String(formData.get("productId") ?? "");
@@ -24,7 +25,7 @@ export async function submitReview(
   const comment = String(formData.get("comment") ?? "").trim();
 
   if (!productId || rating < 1 || rating > 5) {
-    return { error: "Selecione uma nota de 1 a 5." };
+    return { error: t("product.selectRatingRequired") };
   }
 
   const supabase = await createClient();
@@ -49,7 +50,7 @@ export async function submitReview(
       user_id: user.id,
       rating,
       comment: comment || null,
-      customer_name: user.fullName ?? user.email ?? "Cliente",
+      customer_name: user.fullName ?? user.email ?? t("product.defaultCustomerName"),
       is_verified_purchase: isVerifiedPurchase,
       is_approved: false,
     },
@@ -57,7 +58,7 @@ export async function submitReview(
   );
 
   if (error) {
-    return { error: "Não foi possível enviar sua avaliação. Tente novamente." };
+    return { error: t("product.reviewSubmitFailed") };
   }
 
   revalidatePath(`/produto/${productSlug}`);

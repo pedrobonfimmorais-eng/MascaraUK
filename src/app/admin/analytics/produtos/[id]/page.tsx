@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { t } from "@/i18n";
+import { ta } from "@/i18n";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { PeriodFilterBar } from "@/components/analytics/PeriodFilterBar";
 import { FunnelChart } from "@/components/analytics/FunnelChart";
@@ -11,7 +11,7 @@ import { parseAnalyticsSearchParams, type AnalyticsSearchParams } from "@/lib/an
 import { getProductFunnel, getVariantPerformance } from "@/lib/analytics/products";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export const metadata: Metadata = { title: t("analytics.nav.products") };
+export const metadata: Metadata = { title: ta("analytics.nav.products") };
 
 interface ProductAnalyticsDetailPageProps {
   params: Promise<{ id: string }>;
@@ -46,14 +46,14 @@ export default async function ProductAnalyticsDetailPage({ params, searchParams 
   const categoryName = Array.isArray(categories) ? categories[0]?.name : categories?.name;
 
   const problems: string[] = [];
-  if (funnel.views >= 50 && (funnel.conversionRate ?? 0) < 1) problems.push(t("analytics.problems.highViewsLowSales"));
-  if (funnel.addToCart >= 20 && funnel.quantitySold === 0) problems.push(t("analytics.problems.highCartLowSales"));
-  if (product.cost_price == null) problems.push(t("analytics.problems.noCost"));
+  if (funnel.views >= 50 && (funnel.conversionRate ?? 0) < 1) problems.push(ta("analytics.problems.highViewsLowSales"));
+  if (funnel.addToCart >= 20 && funnel.quantitySold === 0) problems.push(ta("analytics.problems.highCartLowSales"));
+  if (product.cost_price == null) problems.push(ta("analytics.problems.noCost"));
   if (product.flash_sale_ends_at && new Date(product.flash_sale_ends_at) < new Date() && product.flash_sale_price != null) {
-    problems.push(t("analytics.problems.expiredFlashSale"));
+    problems.push(ta("analytics.problems.expiredFlashSale"));
   }
   if (funnel.refundedAmount > 0 && funnel.revenue > 0 && funnel.refundedAmount / funnel.revenue > 0.2) {
-    problems.push(t("analytics.problems.highRefunds"));
+    problems.push(ta("analytics.problems.highRefunds"));
   }
 
   const bestViewedVariant = [...variants].sort((a, b) => b.views - a.views)[0];
@@ -75,9 +75,9 @@ export default async function ProductAnalyticsDetailPage({ params, searchParams 
           <p className="text-sm text-gray-500">{categoryName}</p>
           <p className="text-sm text-gray-700">{formatCurrency(product.base_price)}</p>
           <div className="mt-1 flex gap-2">
-            <Badge tone={product.is_active ? "success" : "neutral"}>{product.is_active ? t("common.yes") : t("common.no")}</Badge>
+            <Badge tone={product.is_active ? "success" : "neutral"}>{product.is_active ? ta("common.yes") : ta("common.no")}</Badge>
             <Badge tone={stock <= 0 ? "danger" : "neutral"}>
-              {t("account.tracking")}: {stock}
+              {ta("account.tracking")}: {stock}
             </Badge>
           </div>
         </div>
@@ -93,7 +93,7 @@ export default async function ProductAnalyticsDetailPage({ params, searchParams 
 
       {problems.length > 0 && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-          <p className="mb-1 font-medium">{t("analytics.problems.title")}</p>
+          <p className="mb-1 font-medium">{ta("analytics.problems.title")}</p>
           <ul className="list-inside list-disc">
             {problems.map((problem) => (
               <li key={problem}>{problem}</li>
@@ -103,54 +103,54 @@ export default async function ProductAnalyticsDetailPage({ params, searchParams 
       )}
 
       <section className="rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.products.funnelTitle")}</h2>
+        <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.products.funnelTitle")}</h2>
         <FunnelChart
           steps={[
-            { label: t("analytics.funnel.viewed"), count: funnel.views },
-            { label: t("analytics.funnel.addedToCart"), count: funnel.addToCart },
-            { label: t("analytics.funnel.beganCheckout"), count: funnel.beginCheckout },
-            { label: t("analytics.funnel.purchased"), count: funnel.purchases },
+            { label: ta("analytics.funnel.viewed"), count: funnel.views },
+            { label: ta("analytics.funnel.addedToCart"), count: funnel.addToCart },
+            { label: ta("analytics.funnel.beganCheckout"), count: funnel.beginCheckout },
+            { label: ta("analytics.funnel.purchased"), count: funnel.purchases },
           ]}
         />
       </section>
 
       <section className="rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.products.metricsTitle")}</h2>
+        <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.products.metricsTitle")}</h2>
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-          <Item label={t("analytics.products.uniqueVisitors")} value={String(funnel.uniqueVisitors)} />
-          <Item label={t("analytics.metrics.itemsSold")} value={String(funnel.quantitySold)} />
-          <Item label={t("admin.orders.columnTotal")} value={formatCurrency(funnel.revenue)} />
-          <Item label={t("cart.discount")} value={formatCurrency(funnel.discountGiven)} />
-          <Item label={t("analytics.sales.refunds")} value={formatCurrency(funnel.refundedAmount)} />
-          <Item label={t("analytics.products.addToCartRate")} value={funnel.addToCartRate == null ? "—" : `${funnel.addToCartRate}%`} />
-          <Item label={t("analytics.products.checkoutRate")} value={funnel.beginCheckoutRate == null ? "—" : `${funnel.beginCheckoutRate}%`} />
-          <Item label={t("analytics.products.columnConversion")} value={funnel.conversionRate == null ? "—" : `${funnel.conversionRate}%`} />
-          <Item label={t("analytics.products.abandonmentRate")} value={funnel.abandonmentRate == null ? "—" : `${funnel.abandonmentRate}%`} />
+          <Item label={ta("analytics.products.uniqueVisitors")} value={String(funnel.uniqueVisitors)} />
+          <Item label={ta("analytics.metrics.itemsSold")} value={String(funnel.quantitySold)} />
+          <Item label={ta("admin.orders.columnTotal")} value={formatCurrency(funnel.revenue)} />
+          <Item label={ta("cart.discount")} value={formatCurrency(funnel.discountGiven)} />
+          <Item label={ta("analytics.sales.refunds")} value={formatCurrency(funnel.refundedAmount)} />
+          <Item label={ta("analytics.products.addToCartRate")} value={funnel.addToCartRate == null ? "—" : `${funnel.addToCartRate}%`} />
+          <Item label={ta("analytics.products.checkoutRate")} value={funnel.beginCheckoutRate == null ? "—" : `${funnel.beginCheckoutRate}%`} />
+          <Item label={ta("analytics.products.columnConversion")} value={funnel.conversionRate == null ? "—" : `${funnel.conversionRate}%`} />
+          <Item label={ta("analytics.products.abandonmentRate")} value={funnel.abandonmentRate == null ? "—" : `${funnel.abandonmentRate}%`} />
         </dl>
       </section>
 
       <section className="rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.profit.productCost")}</h2>
+        <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.profit.productCost")}</h2>
         <ProductCostEditor productId={product.id} currentCost={product.cost_price} />
       </section>
 
       {variants.length > 0 && (
         <section className="rounded-xl border border-gray-200 p-4">
-          <h2 className="mb-3 font-semibold text-brand-secondary">{t("analytics.products.variantsTitle")}</h2>
+          <h2 className="mb-3 font-semibold text-brand-secondary">{ta("analytics.products.variantsTitle")}</h2>
           <div className="mb-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-            {bestViewedVariant && <Item label={t("analytics.products.mostViewedVariant")} value={bestViewedVariant.label} />}
-            {bestCartVariant && <Item label={t("analytics.products.mostCartedVariant")} value={bestCartVariant.label} />}
-            {bestSellingVariant && <Item label={t("analytics.products.bestSellingVariant")} value={bestSellingVariant.label} />}
+            {bestViewedVariant && <Item label={ta("analytics.products.mostViewedVariant")} value={bestViewedVariant.label} />}
+            {bestCartVariant && <Item label={ta("analytics.products.mostCartedVariant")} value={bestCartVariant.label} />}
+            {bestSellingVariant && <Item label={ta("analytics.products.bestSellingVariant")} value={bestSellingVariant.label} />}
           </div>
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                 <tr>
-                  <th className="px-3 py-2">{t("product.selectVariant")}</th>
-                  <th className="px-3 py-2">{t("analytics.products.columnViews")}</th>
-                  <th className="px-3 py-2">{t("analytics.products.columnCartAdds")}</th>
-                  <th className="px-3 py-2">{t("analytics.metrics.itemsSold")}</th>
-                  <th className="px-3 py-2">{t("admin.sidebar.inventory")}</th>
+                  <th className="px-3 py-2">{ta("product.selectVariant")}</th>
+                  <th className="px-3 py-2">{ta("analytics.products.columnViews")}</th>
+                  <th className="px-3 py-2">{ta("analytics.products.columnCartAdds")}</th>
+                  <th className="px-3 py-2">{ta("analytics.metrics.itemsSold")}</th>
+                  <th className="px-3 py-2">{ta("admin.sidebar.inventory")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -161,7 +161,7 @@ export default async function ProductAnalyticsDetailPage({ params, searchParams 
                     <td className="px-3 py-2">{variant.addToCart}</td>
                     <td className="px-3 py-2">{variant.quantitySold}</td>
                     <td className="px-3 py-2">
-                      {variant.stock <= 0 ? <Badge tone="danger">{t("product.outOfStock")}</Badge> : variant.stock}
+                      {variant.stock <= 0 ? <Badge tone="danger">{ta("product.outOfStock")}</Badge> : variant.stock}
                     </td>
                   </tr>
                 ))}

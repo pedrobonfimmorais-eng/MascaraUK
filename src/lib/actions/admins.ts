@@ -2,7 +2,7 @@
 
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
-import { t, type TranslationKey } from "@/i18n";
+import { ta, type TranslationKey } from "@/i18n";
 import { requirePrincipal } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTemplateEmail, adminInviteEmail } from "@/lib/email";
@@ -65,7 +65,7 @@ export async function createAdminInvite(
     email,
     adminInviteEmail({
       inviterName: principal.fullName ?? principal.email ?? "Administrador",
-      roleLabel: t(`roles.${role}` as TranslationKey),
+      roleLabel: ta(`roles.${role}` as TranslationKey),
       acceptUrl,
       expiresAtLabel: new Date(expiresAt).toLocaleDateString("pt-BR"),
     })

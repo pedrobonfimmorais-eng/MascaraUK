@@ -47,7 +47,7 @@ export async function buildReport(type: ReportType, filters: ReportFilters): Pro
     generatedAt: new Date(),
     periodLabel: `${formatDate(period.range.start.toISOString())} a ${formatDate(new Date(period.range.end.getTime() - 86400000).toISOString())}`,
     filtersSummary: summarizeFilters(filters),
-    currency: "BRL",
+    currency: "GBP",
   };
 
   switch (type) {

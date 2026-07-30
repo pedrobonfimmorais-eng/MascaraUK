@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { t } from "@/i18n";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
+import { isValidUkPostcode, normalisePostcode } from "@/lib/uk-address";
 import type { Address } from "@/types/database";
 
 export interface AccountActionState {
@@ -10,17 +12,13 @@ export interface AccountActionState {
   success?: boolean;
 }
 
-function digitsOnly(value: string): string {
-  return value.replace(/\D/g, "");
-}
-
-/** Nome, sobrenome, telefone, data de nascimento (opcional) e preferências de comunicação. */
+/** First name, last name, phone, date of birth (optional) and communication preferences. */
 export async function updateProfile(
   _prevState: AccountActionState,
   formData: FormData
 ): Promise<AccountActionState> {
   const user = await getCurrentUser();
-  if (!user) return { error: "Você precisa estar autenticado." };
+  if (!user) return { error: t("errors.unauthorized") };
 
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
@@ -29,7 +27,7 @@ export async function updateProfile(
   const marketingOptIn = formData.get("marketingOptIn") === "on";
 
   if (!firstName || !lastName) {
-    return { error: "Informe seu nome e sobrenome." };
+    return { error: t("account.firstLastNameRequired") };
   }
 
   const supabase = await createClient();
@@ -45,7 +43,7 @@ export async function updateProfile(
     })
     .eq("id", user.id);
 
-  if (error) return { error: "Não foi possível salvar o perfil." };
+  if (error) return { error: t("common.error") };
 
   revalidatePath("/minha-conta");
   revalidatePath("/minha-conta/perfil");
@@ -63,11 +61,11 @@ export async function requestEmailChange(
   formData: FormData
 ): Promise<AccountActionState> {
   const user = await getCurrentUser();
-  if (!user) return { error: "Você precisa estar autenticado." };
+  if (!user) return { error: t("errors.unauthorized") };
 
   const newEmail = String(formData.get("newEmail") ?? "").trim();
   if (!newEmail || !newEmail.includes("@")) {
-    return { error: "Digite um e-mail válido." };
+    return { error: t("validation.invalidEmail") };
   }
 
   const supabase = await createClient();
@@ -77,7 +75,7 @@ export async function requestEmailChange(
     { emailRedirectTo: `${siteUrl}/api/auth/callback?next=/minha-conta/perfil` }
   );
 
-  if (error) return { error: "Não foi possível iniciar a troca de e-mail." };
+  if (error) return { error: t("common.error") };
 
   return { error: null, success: true };
 }
@@ -87,45 +85,34 @@ export interface AddressActionState {
   success?: boolean;
 }
 
-const REQUIRED_ADDRESS_FIELDS = [
-  "recipientName",
-  "phone",
-  "zipCode",
-  "street",
-  "number",
-  "neighborhood",
-  "city",
-  "state",
-] as const;
+const REQUIRED_ADDRESS_FIELDS = ["recipientName", "phone", "addressLine1", "townCity", "country"] as const;
 
 function readAddressPayload(formData: FormData) {
   return {
     recipient_name: String(formData.get("recipientName") ?? "").trim(),
+    company_name: String(formData.get("companyName") ?? "").trim() || null,
     phone: String(formData.get("phone") ?? "").trim(),
-    zip_code: digitsOnly(String(formData.get("zipCode") ?? "")),
-    street: String(formData.get("street") ?? "").trim(),
-    number: String(formData.get("number") ?? "").trim(),
-    complement: String(formData.get("complement") ?? "").trim() || null,
-    neighborhood: String(formData.get("neighborhood") ?? "").trim(),
-    city: String(formData.get("city") ?? "").trim(),
-    state: String(formData.get("state") ?? "").trim(),
-    country: String(formData.get("country") ?? "BR").trim() || "BR",
-    reference: String(formData.get("reference") ?? "").trim() || null,
+    address_line1: String(formData.get("addressLine1") ?? "").trim(),
+    address_line2: String(formData.get("addressLine2") ?? "").trim() || null,
+    town_city: String(formData.get("townCity") ?? "").trim(),
+    county: String(formData.get("county") ?? "").trim() || null,
+    postcode: normalisePostcode(String(formData.get("postcode") ?? "")),
+    country: String(formData.get("country") ?? "United Kingdom").trim() || "United Kingdom",
+    delivery_instructions: String(formData.get("deliveryInstructions") ?? "").trim() || null,
     label: String(formData.get("label") ?? "").trim() || null,
   };
 }
 
-/** Never invents missing address data — every required field must be present and non-empty. */
+/** Never invents missing address data — every required field must be present and non-empty. County is optional, postcode is required and validated. */
 function validateAddressPayload(formData: FormData): string | null {
   for (const field of REQUIRED_ADDRESS_FIELDS) {
     if (!String(formData.get(field) ?? "").trim()) {
-      return "Preencha todos os campos obrigatórios do endereço.";
+      return t("checkout.addressRequired");
     }
   }
 
-  const zipCode = digitsOnly(String(formData.get("zipCode") ?? ""));
-  if (zipCode.length !== 8) {
-    return "Digite um CEP válido com 8 dígitos.";
+  if (!isValidUkPostcode(String(formData.get("postcode") ?? ""))) {
+    return t("checkout.invalidZipCode");
   }
 
   return null;
@@ -136,7 +123,7 @@ export async function createAddress(
   formData: FormData
 ): Promise<AddressActionState> {
   const user = await getCurrentUser();
-  if (!user) return { error: "Você precisa estar autenticado." };
+  if (!user) return { error: t("errors.unauthorized") };
 
   const validationError = validateAddressPayload(formData);
   if (validationError) return { error: validationError };
@@ -156,7 +143,7 @@ export async function createAddress(
     is_billing_default: isFirstAddress,
   });
 
-  if (error) return { error: "Não foi possível salvar o endereço." };
+  if (error) return { error: t("common.error") };
 
   revalidatePath("/minha-conta/enderecos");
   return { error: null, success: true };
@@ -168,7 +155,7 @@ export async function updateAddress(
   formData: FormData
 ): Promise<AddressActionState> {
   const user = await getCurrentUser();
-  if (!user) return { error: "Você precisa estar autenticado." };
+  if (!user) return { error: t("errors.unauthorized") };
 
   const validationError = validateAddressPayload(formData);
   if (validationError) return { error: validationError };
@@ -180,7 +167,7 @@ export async function updateAddress(
     .eq("id", addressId)
     .eq("user_id", user.id);
 
-  if (error) return { error: "Não foi possível atualizar o endereço." };
+  if (error) return { error: t("common.error") };
 
   revalidatePath("/minha-conta/enderecos");
   return { error: null, success: true };

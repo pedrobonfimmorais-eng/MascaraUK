@@ -1,11 +1,18 @@
 import { cn } from "@/lib/utils";
-
-const STEP_LABELS = ["Identificação", "Endereço", "Entrega", "Revisão", "Pagamento"];
+import { t } from "@/i18n";
 
 export function CheckoutStepper({ currentStep }: { currentStep: number }) {
+  const stepLabels = [
+    t("checkout.stepContact"),
+    t("checkout.stepDeliveryAddress"),
+    t("checkout.stepDeliveryMethod"),
+    t("checkout.stepReview"),
+    t("checkout.stepPayment"),
+  ];
+
   return (
     <ol className="mb-8 flex items-center gap-2 overflow-x-auto sm:gap-4">
-      {STEP_LABELS.map((label, index) => {
+      {stepLabels.map((label, index) => {
         const stepNumber = index + 1;
         const isActive = stepNumber === currentStep;
         const isDone = stepNumber < currentStep;
@@ -27,7 +34,7 @@ export function CheckoutStepper({ currentStep }: { currentStep: number }) {
             <span className={cn("text-xs font-medium sm:text-sm", isActive ? "text-brand-secondary" : "text-gray-400")}>
               {label}
             </span>
-            {stepNumber < STEP_LABELS.length && <span className="mx-1 h-px w-4 bg-gray-300 sm:w-8" />}
+            {stepNumber < stepLabels.length && <span className="mx-1 h-px w-4 bg-gray-300 sm:w-8" />}
           </li>
         );
       })}

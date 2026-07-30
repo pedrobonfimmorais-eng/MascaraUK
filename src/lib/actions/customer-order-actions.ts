@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTemplateEmail, orderCancelledEmail } from "@/lib/email";
+import { t } from "@/i18n";
 
 export interface CustomerOrderActionResult {
   ok: boolean;
@@ -32,10 +33,10 @@ async function loadOwnedOrder(orderId: string) {
  */
 export async function requestOrderCancellation(orderId: string): Promise<CustomerOrderActionResult> {
   const { order } = await loadOwnedOrder(orderId);
-  if (!order) return { ok: false, message: "Pedido não encontrado." };
+  if (!order) return { ok: false, message: t("account.orderNotFound") };
 
   if (["enviado", "entregue", "cancelado", "devolvido"].includes(order.status)) {
-    return { ok: false, message: "Este pedido não pode mais ser cancelado por aqui." };
+    return { ok: false, message: t("account.orderCannotBeCancelledHere") };
   }
 
   const admin = createAdminClient();
@@ -63,7 +64,7 @@ export async function requestOrderCancellation(orderId: string): Promise<Custome
       event_type: "pedido_cancelado",
       previous_status: order.status,
       new_status: "cancelado",
-      note: "Cancelado pelo cliente antes da confirmação do pagamento.",
+      note: "Cancelled by the customer before payment confirmation.",
     });
 
     await sendTemplateEmail(
@@ -77,32 +78,32 @@ export async function requestOrderCancellation(orderId: string): Promise<Custome
 
     revalidatePath(`/minha-conta/pedidos/${order.id}`);
     revalidatePath("/minha-conta/pedidos");
-    return { ok: true, message: "Pedido cancelado." };
+    return { ok: true, message: t("account.orderCancelledMessage") };
   }
 
   await admin.from("order_events").insert({
     order_id: order.id,
     event_type: "cancelamento_solicitado",
-    note: "Cliente solicitou o cancelamento deste pedido.",
+    note: "Customer requested cancellation of this order.",
   });
 
   revalidatePath(`/minha-conta/pedidos/${order.id}`);
-  return { ok: true, message: "Solicitação de cancelamento enviada. Nossa equipe vai analisar seu pedido." };
+  return { ok: true, message: t("account.cancellationRequested") };
 }
 
 /** Only available for delivered orders, within the returns window. */
 export async function requestOrderReturn(orderId: string): Promise<CustomerOrderActionResult> {
   const { order } = await loadOwnedOrder(orderId);
-  if (!order) return { ok: false, message: "Pedido não encontrado." };
+  if (!order) return { ok: false, message: t("account.orderNotFound") };
 
   if (order.status !== "entregue") {
-    return { ok: false, message: "Somente pedidos entregues podem ter devolução solicitada." };
+    return { ok: false, message: t("account.onlyDeliveredOrdersCanBeReturned") };
   }
 
   if (order.delivered_at) {
     const daysSinceDelivery = (Date.now() - new Date(order.delivered_at).getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceDelivery > RETURN_WINDOW_DAYS) {
-      return { ok: false, message: `O prazo de ${RETURN_WINDOW_DAYS} dias para solicitar devolução já passou.` };
+      return { ok: false, message: t("account.returnWindowExpired", { days: RETURN_WINDOW_DAYS }) };
     }
   }
 
@@ -113,9 +114,9 @@ export async function requestOrderReturn(orderId: string): Promise<CustomerOrder
     event_type: "devolucao_solicitada",
     previous_status: "entregue",
     new_status: "devolucao_solicitada",
-    note: "Cliente solicitou devolução.",
+    note: "Customer requested a return.",
   });
 
   revalidatePath(`/minha-conta/pedidos/${order.id}`);
-  return { ok: true, message: "Solicitação de devolução enviada. Nossa equipe vai entrar em contato." };
+  return { ok: true, message: t("account.returnRequested") };
 }

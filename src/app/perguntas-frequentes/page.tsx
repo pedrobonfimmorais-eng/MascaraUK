@@ -9,20 +9,27 @@ export const metadata: Metadata = { title: t("faq.pageTitle") };
 // (ideally moved into the `custom_pages` table so the admin can edit it).
 const demoFaqs = [
   {
-    question: "Os produtos são originais?",
-    answer: "Sim, todos os itens são cadastrados e enviados diretamente pela nossa loja.",
+    question: "Are these official licensed products?",
+    answer:
+      "Each product page shows how it is classified — an original store design, a generic hero-inspired product, or an officially licensed product. We only describe an item as officially licensed when that licence has genuinely been obtained.",
   },
   {
-    question: "Quais as formas de pagamento aceitas?",
-    answer: "Aceitamos cartão de crédito e outros métodos disponíveis no checkout via Stripe.",
+    question: "What payment methods do you accept?",
+    answer: "We accept card payments and any other methods shown at checkout, all processed securely through Stripe.",
   },
   {
-    question: "Qual o prazo de entrega?",
-    answer: "O prazo varia conforme sua região e é informado no checkout antes da confirmação do pedido.",
+    question: "How long does delivery take?",
+    answer:
+      "Delivery times depend on your postcode and the delivery option you choose, and are shown in your basket and at checkout before you pay.",
   },
   {
-    question: "Posso trocar ou devolver um produto?",
-    answer: "Sim, consulte nossa página de Trocas e Devoluções para saber o passo a passo.",
+    question: "Can I return or exchange a product?",
+    answer: "Yes — see our Returns and Refunds Policy page for the full step-by-step process.",
+  },
+  {
+    question: "Are the masks and props safe to wear?",
+    answer:
+      "Each product page lists any safety information, recommended age and care instructions we hold for that item. Our masks and props are decorative costume and cosplay items, not toys and not functional weapons.",
   },
 ];
 

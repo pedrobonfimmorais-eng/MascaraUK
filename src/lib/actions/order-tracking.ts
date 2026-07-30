@@ -3,6 +3,7 @@
 import { randomBytes } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/send";
+import { t } from "@/i18n";
 
 export interface GuestTrackingActionState {
   error: string | null;
@@ -23,7 +24,7 @@ export async function requestGuestOrderAccess(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
   if (!orderNumber || !email) {
-    return { error: "Informe o número do pedido e o e-mail usado na compra." };
+    return { error: t("orderTracking.missingFields") };
   }
 
   const admin = createAdminClient();
@@ -48,8 +49,8 @@ export async function requestGuestOrderAccess(
 
     await sendEmail({
       to: email,
-      subject: `Acompanhe seu pedido #${order.order_number}`,
-      html: `<p>Aqui está o link seguro para acompanhar seu pedido #${order.order_number}:</p><p><a href="${trackingUrl}">${trackingUrl}</a></p>`,
+      subject: t("orderTracking.trackingEmailSubject", { orderNumber: order.order_number }),
+      html: `<p>${t("orderTracking.trackingEmailBody", { orderNumber: order.order_number })}</p><p><a href="${trackingUrl}">${trackingUrl}</a></p>`,
     });
   }
 

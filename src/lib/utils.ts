@@ -4,8 +4,15 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
-export function formatCurrency(value: number, currency = "BRL") {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(value);
+/**
+ * Formats a currency amount British-style (£1,299.00 — comma thousands
+ * separator, dot decimal point), regardless of whether the surrounding UI
+ * text is in English (storefront) or Portuguese (admin panel) — the
+ * store's currency is GBP everywhere, so the number format follows en-GB
+ * conventions everywhere too, per store_settings.store_currency.
+ */
+export function formatCurrency(value: number, currency = "GBP") {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(value);
 }
 
 // Matches Unicode combining diacritical marks (U+0300 - U+036F) left behind

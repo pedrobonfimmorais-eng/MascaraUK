@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { t, type TranslationKey } from "@/i18n";
+import { ta, type TranslationKey } from "@/i18n";
 import { updateMessageStatus, saveMessageNote } from "@/lib/actions/messages";
 import { Button } from "@/components/ui/Button";
 import type { MessageStatus } from "@/types/database";
@@ -32,7 +32,7 @@ export function MessageDetailPanel({ messageId, initialStatus, initialNote }: { 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-gray-200 p-4">
       <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("admin.messages.changeStatus")}
+        {ta("admin.messages.changeStatus")}
         <select
           value={status}
           disabled={isPending}
@@ -41,14 +41,14 @@ export function MessageDetailPanel({ messageId, initialStatus, initialNote }: { 
         >
           {STATUSES.map((value) => (
             <option key={value} value={value}>
-              {t(`admin.messages.status.${value}` as TranslationKey)}
+              {ta(`admin.messages.status.${value}` as TranslationKey)}
             </option>
           ))}
         </select>
       </label>
 
       <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("admin.messages.adminNote")}
+        {ta("admin.messages.adminNote")}
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -57,7 +57,7 @@ export function MessageDetailPanel({ messageId, initialStatus, initialNote }: { 
         />
       </label>
       <Button size="sm" disabled={isPending} onClick={saveNote} className="w-fit">
-        {t("admin.messages.saveNote")}
+        {ta("admin.messages.saveNote")}
       </Button>
 
       {message && <p className="text-sm text-emerald-700">{message}</p>}

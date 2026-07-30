@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mergeGuestCartIntoUser } from "@/lib/actions/cart";
 import { sendTemplateEmail, passwordChangedEmail } from "@/lib/email";
+import { formatPublicDateTime } from "@/lib/format-date";
+import { t } from "@/i18n";
 
 export interface AuthActionState {
   error: string | null;
@@ -14,9 +16,6 @@ export interface AuthActionState {
 
 const LOGIN_ATTEMPT_WINDOW_MINUTES = 15;
 const MAX_FAILED_ATTEMPTS = 5;
-const GENERIC_LOGIN_ERROR = "E-mail ou senha inválidos.";
-const TOO_MANY_ATTEMPTS_ERROR =
-  "Muitas tentativas de login para este e-mail. Aguarde alguns minutos e tente novamente.";
 
 function isSupabaseConfigured() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -93,11 +92,11 @@ export async function signIn(_prevState: AuthActionState, formData: FormData): P
   const redirectTo = String(formData.get("redirect") ?? "/minha-conta");
 
   if (!email || !password) {
-    return { error: GENERIC_LOGIN_ERROR };
+    return { error: t("auth.errorInvalidCredentials") };
   }
 
   if (await isRateLimited(email)) {
-    return { error: TOO_MANY_ATTEMPTS_ERROR };
+    return { error: t("auth.errorTooManyAttempts") };
   }
 
   const supabase = await createClient();
@@ -106,7 +105,7 @@ export async function signIn(_prevState: AuthActionState, formData: FormData): P
   await recordLoginAttempt(email, !error);
 
   if (error) {
-    return { error: GENERIC_LOGIN_ERROR };
+    return { error: t("auth.errorInvalidCredentials") };
   }
 
   await applyRememberMePreference(remember);
@@ -130,19 +129,19 @@ export async function signUp(_prevState: AuthActionState, formData: FormData): P
   const safeRedirect = redirectTo.startsWith("/") ? redirectTo : "/minha-conta";
 
   if (!firstName || !lastName) {
-    return { error: "Informe seu nome e sobrenome." };
+    return { error: t("auth.errorNameRequired") };
   }
 
   if (!acceptedTerms) {
-    return { error: "É necessário aceitar os Termos de Uso para criar uma conta." };
+    return { error: t("auth.errorTermsRequired") };
   }
 
   if (password.length < 8) {
-    return { error: "A senha deve ter pelo menos 8 caracteres." };
+    return { error: t("auth.errorPasswordTooShort") };
   }
 
   if (password !== confirmPassword) {
-    return { error: "As senhas não coincidem." };
+    return { error: t("auth.errorPasswordMismatch") };
   }
 
   const supabase = await createClient();
@@ -165,9 +164,9 @@ export async function signUp(_prevState: AuthActionState, formData: FormData): P
 
   if (error) {
     if (error.message.toLowerCase().includes("already registered")) {
-      return { error: "Já existe uma conta com este e-mail." };
+      return { error: t("auth.errorEmailTaken") };
     }
-    return { error: "Não foi possível criar a conta. Tente novamente." };
+    return { error: t("auth.errorSignUpFailed") };
   }
 
   // With "confirmar e-mail" enabled in Supabase Auth, signUp doesn't return a
@@ -189,13 +188,13 @@ export async function resendVerificationEmail(
   formData: FormData
 ): Promise<AuthActionState> {
   const email = String(formData.get("email") ?? "").trim();
-  if (!email) return { error: "Informe o e-mail cadastrado." };
+  if (!email) return { error: t("auth.errorEmailRequired") };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resend({ type: "signup", email });
 
   if (error) {
-    return { error: "Não foi possível reenviar o e-mail de confirmação." };
+    return { error: t("auth.errorResendFailed") };
   }
 
   return { error: null, success: true };
@@ -230,18 +229,18 @@ export async function updatePasswordWithRecoverySession(
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
   if (password.length < 8) {
-    return { error: "A senha deve ter pelo menos 8 caracteres." };
+    return { error: t("auth.errorPasswordTooShort") };
   }
 
   if (password !== confirmPassword) {
-    return { error: "As senhas não coincidem." };
+    return { error: t("auth.errorPasswordMismatch") };
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    return { error: "Não foi possível redefinir a senha. Solicite um novo link de recuperação." };
+    return { error: t("auth.errorResetFailed") };
   }
 
   const {
@@ -254,7 +253,7 @@ export async function updatePasswordWithRecoverySession(
       user.email,
       passwordChangedEmail(
         user.user_metadata?.full_name ?? user.email,
-        new Date().toLocaleString("pt-BR"),
+        formatPublicDateTime(new Date()),
         `${siteUrl}/contato`
       )
     );

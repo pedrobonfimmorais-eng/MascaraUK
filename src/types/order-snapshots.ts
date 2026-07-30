@@ -1,14 +1,13 @@
-/** Shape stored in orders.shipping_address_snapshot / billing_address_snapshot (jsonb). */
+/** Shape stored in orders.shipping_address_snapshot / billing_address_snapshot (jsonb). UK address format. */
 export interface AddressSnapshot {
   recipientName: string;
+  companyName: string | null;
   phone: string;
-  zipCode: string;
-  street: string;
-  number: string;
-  complement: string | null;
-  neighborhood: string;
-  city: string;
-  state: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  townCity: string;
+  county: string | null;
+  postcode: string;
   country: string;
-  reference: string | null;
+  deliveryInstructions: string | null;
 }

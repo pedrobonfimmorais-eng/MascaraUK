@@ -18,4 +18,12 @@ export type Locale = "pt" | "en";
 
 export const locales: Locale[] = ["pt", "en"];
 
-export const defaultLocale: Locale = "pt";
+/**
+ * The public storefront's default locale. The admin panel is pinned to
+ * "pt" explicitly via ta() (src/i18n/index.ts) regardless of this value —
+ * see AGENTS.md / Prompt 7: public site in en-GB, admin panel in pt-BR.
+ */
+export const defaultLocale: Locale = "en";
+
+/** Locale the admin panel is always rendered in, independent of defaultLocale. */
+export const adminLocale: Locale = "pt";

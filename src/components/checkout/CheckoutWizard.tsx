@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { t } from "@/i18n";
 import { formatCurrency, cn } from "@/lib/utils";
+import { normalisePostcode, isValidUkPostcode } from "@/lib/uk-address";
 import type { ValidatedCart } from "@/lib/cart/cart-data";
 import type { Address } from "@/types/database";
 import { submitCheckout, type CheckoutActionState } from "@/lib/actions/checkout";
@@ -24,54 +25,45 @@ type IdentificationMode = "account" | "guest-choice" | "guest-form";
 
 interface AddressFormValues {
   recipientName: string;
+  companyName: string;
   phone: string;
-  zipCode: string;
-  street: string;
-  number: string;
-  complement: string;
-  neighborhood: string;
-  city: string;
-  state: string;
-  reference: string;
+  addressLine1: string;
+  addressLine2: string;
+  townCity: string;
+  county: string;
+  postcode: string;
+  deliveryInstructions: string;
 }
 
 const EMPTY_ADDRESS: AddressFormValues = {
   recipientName: "",
+  companyName: "",
   phone: "",
-  zipCode: "",
-  street: "",
-  number: "",
-  complement: "",
-  neighborhood: "",
-  city: "",
-  state: "",
-  reference: "",
+  addressLine1: "",
+  addressLine2: "",
+  townCity: "",
+  county: "",
+  postcode: "",
+  deliveryInstructions: "",
 };
 
 function addressFromSaved(address: Address): AddressFormValues {
   return {
     recipientName: address.recipient_name,
+    companyName: address.company_name ?? "",
     phone: address.phone ?? "",
-    zipCode: address.zip_code,
-    street: address.street,
-    number: address.number,
-    complement: address.complement ?? "",
-    neighborhood: address.neighborhood,
-    city: address.city,
-    state: address.state,
-    reference: address.reference ?? "",
+    addressLine1: address.address_line1,
+    addressLine2: address.address_line2 ?? "",
+    townCity: address.town_city,
+    county: address.county ?? "",
+    postcode: address.postcode,
+    deliveryInstructions: address.delivery_instructions ?? "",
   };
 }
 
 function isAddressComplete(address: AddressFormValues): boolean {
   return Boolean(
-    address.recipientName.trim() &&
-      address.phone.trim() &&
-      address.street.trim() &&
-      address.number.trim() &&
-      address.neighborhood.trim() &&
-      address.city.trim() &&
-      address.state.trim()
+    address.recipientName.trim() && address.phone.trim() && address.addressLine1.trim() && address.townCity.trim()
   );
 }
 
@@ -162,7 +154,7 @@ export function CheckoutWizard({ cart, currentUser, addresses }: CheckoutWizardP
       setStepError(t("checkout.addressRequired"));
       return;
     }
-    if (shippingAddress.zipCode.replace(/\D/g, "").length !== 8) {
+    if (!isValidUkPostcode(shippingAddress.postcode)) {
       setStepError(t("checkout.invalidZipCode"));
       return;
     }
@@ -194,7 +186,7 @@ export function CheckoutWizard({ cart, currentUser, addresses }: CheckoutWizardP
       ) : (
         <form action={formAction} className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="flex flex-col gap-6 lg:col-span-2">
-            {/* STEP 1 — Identificação */}
+            {/* STEP 1 — Contact */}
             <section className={cn(step === 1 ? "block" : "hidden")}>
               <h2 className="mb-3 font-semibold text-brand-secondary">{t("checkout.identification")}</h2>
 
@@ -204,7 +196,7 @@ export function CheckoutWizard({ cart, currentUser, addresses }: CheckoutWizardP
                     {t("checkout.continuingAs")} <strong>{currentUser.fullName ?? currentUser.email}</strong> (
                     {currentUser.email})
                   </p>
-                  <input type="hidden" name="firstName" value={(currentUser.fullName ?? "").split(" ")[0] || "Cliente"} />
+                  <input type="hidden" name="firstName" value={(currentUser.fullName ?? "").split(" ")[0] || "Customer"} />
                   <input
                     type="hidden"
                     name="lastName"
@@ -292,7 +284,7 @@ export function CheckoutWizard({ cart, currentUser, addresses }: CheckoutWizardP
               </div>
             </section>
 
-            {/* STEP 2 — Endereço */}
+            {/* STEP 2 — Delivery address */}
             <section className={cn(step === 2 ? "block" : "hidden")}>
               <h2 className="mb-3 font-semibold text-brand-secondary">{t("checkout.shippingAddress")}</h2>
 
@@ -322,7 +314,9 @@ export function CheckoutWizard({ cart, currentUser, addresses }: CheckoutWizardP
                         <strong>{address.label || address.recipient_name}</strong>
                       </span>
                       <span className="pl-6 text-gray-600">
-                        {address.street}, {address.number} — {address.neighborhood}, {address.city}/{address.state}
+                        {address.address_line1}
+                        {address.address_line2 ? `, ${address.address_line2}` : ""} — {address.town_city}
+                        {address.county ? `, ${address.county}` : ""}, {address.postcode}
                       </span>
                     </label>
                   ))}
@@ -378,7 +372,7 @@ export function CheckoutWizard({ cart, currentUser, addresses }: CheckoutWizardP
               </div>
             </section>
 
-            {/* STEP 3 — Entrega */}
+            {/* STEP 3 — Delivery method */}
             <section className={cn(step === 3 ? "block" : "hidden")}>
               <h2 className="mb-3 font-semibold text-brand-secondary">{t("checkout.shippingMethod")}</h2>
 
@@ -400,7 +394,7 @@ export function CheckoutWizard({ cart, currentUser, addresses }: CheckoutWizardP
                       <span>
                         <strong className="block">{option.label}</strong>
                         <span className="text-xs text-gray-500">
-                          {option.estimate_days_min} {t("common.from")} {option.estimate_days_max} dias úteis
+                          {t("checkout.deliveryEstimateRange", { min: option.estimate_days_min, max: option.estimate_days_max })}
                         </span>
                       </span>
                     </span>
@@ -420,7 +414,7 @@ export function CheckoutWizard({ cart, currentUser, addresses }: CheckoutWizardP
               </div>
             </section>
 
-            {/* STEP 4 — Revisão */}
+            {/* STEP 4 — Review */}
             <section className={cn(step === 4 ? "block" : "hidden")}>
               <h2 className="mb-3 font-semibold text-brand-secondary">{t("checkout.orderReview")}</h2>
 
@@ -544,90 +538,80 @@ function AddressFields({
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("checkout.zipCode")}
+      <label className="flex flex-col gap-1 text-sm text-gray-700 sm:col-span-2">
+        {t("checkout.companyName")} ({t("common.optional")})
         <input
-          name={`${prefix}ZipCode`}
-          value={value.zipCode}
-          onChange={(e) => onChange({ zipCode: e.target.value })}
-          type="text"
-          inputMode="numeric"
-          placeholder="00000-000"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("checkout.street")}
-        <input
-          name={`${prefix}Street`}
-          value={value.street}
-          onChange={(e) => onChange({ street: e.target.value })}
+          name={`${prefix}CompanyName`}
+          value={value.companyName}
+          onChange={(e) => onChange({ companyName: e.target.value })}
           type="text"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("checkout.number")}
+      <label className="flex flex-col gap-1 text-sm text-gray-700 sm:col-span-2">
+        {t("checkout.addressLine1")}
         <input
-          name={`${prefix}Number`}
-          value={value.number}
-          onChange={(e) => onChange({ number: e.target.value })}
+          name={`${prefix}AddressLine1`}
+          value={value.addressLine1}
+          onChange={(e) => onChange({ addressLine1: e.target.value })}
           type="text"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("checkout.complement")} ({t("common.optional")})
+      <label className="flex flex-col gap-1 text-sm text-gray-700 sm:col-span-2">
+        {t("checkout.addressLine2")} ({t("common.optional")})
         <input
-          name={`${prefix}Complement`}
-          value={value.complement}
-          onChange={(e) => onChange({ complement: e.target.value })}
+          name={`${prefix}AddressLine2`}
+          value={value.addressLine2}
+          onChange={(e) => onChange({ addressLine2: e.target.value })}
           type="text"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>
       <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("checkout.neighborhood")}
+        {t("checkout.townCity")}
         <input
-          name={`${prefix}Neighborhood`}
-          value={value.neighborhood}
-          onChange={(e) => onChange({ neighborhood: e.target.value })}
+          name={`${prefix}TownCity`}
+          value={value.townCity}
+          onChange={(e) => onChange({ townCity: e.target.value })}
           type="text"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>
       <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("checkout.city")}
+        {t("checkout.county")} ({t("common.optional")})
         <input
-          name={`${prefix}City`}
-          value={value.city}
-          onChange={(e) => onChange({ city: e.target.value })}
+          name={`${prefix}County`}
+          value={value.county}
+          onChange={(e) => onChange({ county: e.target.value })}
           type="text"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>
       <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("checkout.state")}
+        {t("checkout.postcode")}
         <input
-          name={`${prefix}State`}
-          value={value.state}
-          onChange={(e) => onChange({ state: e.target.value.toUpperCase() })}
+          name={`${prefix}Postcode`}
+          value={value.postcode}
+          onChange={(e) => onChange({ postcode: e.target.value })}
+          onBlur={(e) => onChange({ postcode: normalisePostcode(e.target.value) })}
           type="text"
-          maxLength={2}
+          maxLength={8}
+          placeholder="SW1A 1AA"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase focus:border-brand-primary focus:outline-none"
         />
       </label>
       <label className="flex flex-col gap-1 text-sm text-gray-700">
-        {t("account.addressReference")} ({t("common.optional")})
+        {t("checkout.deliveryInstructions")} ({t("common.optional")})
         <input
-          name={`${prefix}Reference`}
-          value={value.reference}
-          onChange={(e) => onChange({ reference: e.target.value })}
+          name={`${prefix}DeliveryInstructions`}
+          value={value.deliveryInstructions}
+          onChange={(e) => onChange({ deliveryInstructions: e.target.value })}
           type="text"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>
-      <input type="hidden" name={`${prefix}Country`} value="BR" />
+      <input type="hidden" name={`${prefix}Country`} value="United Kingdom" />
     </>
   );
 }

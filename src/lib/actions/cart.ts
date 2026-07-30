@@ -1,15 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { t } from "@/i18n";
 import { createClient } from "@/lib/supabase/server";
 import { ensureCart } from "@/lib/cart/cart-data";
 import { getGuestSessionId, clearGuestSessionId } from "@/lib/cart/session";
 import { computePricing } from "@/lib/pricing";
+import { normalisePostcode } from "@/lib/uk-address";
 
 export type CartActionResult = { ok: boolean; message: string };
 
-const NOT_CONFIGURED_MESSAGE =
-  "O carrinho ainda não está disponível: configure o Supabase para habilitar as compras.";
+const NOT_CONFIGURED_MESSAGE = t("cart.notConfigured");
 
 function isSupabaseConfigured() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -30,7 +31,7 @@ export async function addToCart(
   }
 
   if (quantity < 1) {
-    return { ok: false, message: "Quantidade inválida." };
+    return { ok: false, message: t("cart.invalidQuantity") };
   }
 
   const supabase = await createClient();
@@ -42,7 +43,7 @@ export async function addToCart(
     .maybeSingle();
 
   if (!product || !product.is_active) {
-    return { ok: false, message: "Este produto não está mais disponível." };
+    return { ok: false, message: t("cart.itemUnavailable") };
   }
 
   const { data: allVariants } = await supabase
@@ -51,12 +52,12 @@ export async function addToCart(
     .eq("product_id", productId);
 
   if ((allVariants?.length ?? 0) > 0 && !variantId) {
-    return { ok: false, message: "Selecione uma variação antes de adicionar ao carrinho." };
+    return { ok: false, message: t("cart.selectVariantRequired") };
   }
 
   const variant = variantId ? allVariants?.find((v) => v.id === variantId) : null;
   if (variantId && (!variant || !variant.is_active)) {
-    return { ok: false, message: "Esta variação não está disponível." };
+    return { ok: false, message: t("cart.variantUnavailable") };
   }
 
   const inventoryQuery = supabase
@@ -73,7 +74,7 @@ export async function addToCart(
     : 0;
 
   if (availableStock <= 0) {
-    return { ok: false, message: "Produto fora de estoque." };
+    return { ok: false, message: t("product.outOfStock") };
   }
 
   const cart = await ensureCart();
@@ -94,7 +95,7 @@ export async function addToCart(
   if (desiredQuantity > availableStock) {
     return {
       ok: false,
-      message: `Estoque insuficiente. Disponível: ${availableStock} unidade(s).`,
+      message: t("cart.itemInsufficientStock", { count: availableStock }),
     };
   }
 
@@ -113,7 +114,7 @@ export async function addToCart(
       .update({ quantity: desiredQuantity, unit_price: pricing.currentPrice })
       .eq("id", existingItem.id);
 
-    if (error) return { ok: false, message: "Não foi possível atualizar o carrinho." };
+    if (error) return { ok: false, message: t("common.error") };
   } else {
     const { error } = await supabase.from("cart_items").insert({
       cart_id: cart.id,
@@ -123,11 +124,11 @@ export async function addToCart(
       unit_price: pricing.currentPrice,
     });
 
-    if (error) return { ok: false, message: "Não foi possível adicionar ao carrinho." };
+    if (error) return { ok: false, message: t("common.error") };
   }
 
   refreshCartViews();
-  return { ok: true, message: "Produto adicionado ao carrinho." };
+  return { ok: true, message: t("cart.itemAdded") };
 }
 
 export async function updateCartItemQuantity(
@@ -150,7 +151,7 @@ export async function updateCartItemQuantity(
     .eq("id", cartItemId)
     .maybeSingle();
 
-  if (!item) return { ok: false, message: "Item não encontrado no carrinho." };
+  if (!item) return { ok: false, message: t("cart.itemNotFound") };
 
   const stockQuery = supabase
     .from("inventory")
@@ -166,14 +167,14 @@ export async function updateCartItemQuantity(
     : 0;
 
   if (quantity > availableStock) {
-    return { ok: false, message: `Estoque insuficiente. Disponível: ${availableStock} unidade(s).` };
+    return { ok: false, message: t("cart.itemInsufficientStock", { count: availableStock }) };
   }
 
   const { error } = await supabase.from("cart_items").update({ quantity }).eq("id", cartItemId);
-  if (error) return { ok: false, message: "Não foi possível atualizar a quantidade." };
+  if (error) return { ok: false, message: t("common.error") };
 
   refreshCartViews();
-  return { ok: true, message: "Quantidade alterada." };
+  return { ok: true, message: t("cart.quantityUpdated") };
 }
 
 export async function removeCartItem(cartItemId: string): Promise<CartActionResult> {
@@ -183,10 +184,10 @@ export async function removeCartItem(cartItemId: string): Promise<CartActionResu
 
   const supabase = await createClient();
   const { error } = await supabase.from("cart_items").delete().eq("id", cartItemId);
-  if (error) return { ok: false, message: "Não foi possível remover o item." };
+  if (error) return { ok: false, message: t("common.error") };
 
   refreshCartViews();
-  return { ok: true, message: "Produto removido do carrinho." };
+  return { ok: true, message: t("cart.itemRemoved") };
 }
 
 export async function applyCouponAction(code: string): Promise<CartActionResult> {
@@ -195,7 +196,7 @@ export async function applyCouponAction(code: string): Promise<CartActionResult>
   }
 
   const trimmed = code.trim();
-  if (!trimmed) return { ok: false, message: "Digite um código de cupom." };
+  if (!trimmed) return { ok: false, message: t("cart.discountCodeRequired") };
 
   const cart = await ensureCart();
   const supabase = await createClient();
@@ -205,10 +206,10 @@ export async function applyCouponAction(code: string): Promise<CartActionResult>
     .update({ coupon_code: trimmed.toUpperCase() })
     .eq("id", cart.id);
 
-  if (error) return { ok: false, message: "Não foi possível aplicar o cupom." };
+  if (error) return { ok: false, message: t("common.error") };
 
   refreshCartViews();
-  return { ok: true, message: "Cupom aplicado." };
+  return { ok: true, message: t("cart.couponApplied") };
 }
 
 export async function removeCouponAction(): Promise<CartActionResult> {
@@ -220,13 +221,13 @@ export async function removeCouponAction(): Promise<CartActionResult> {
   const supabase = await createClient();
 
   const { error } = await supabase.from("carts").update({ coupon_code: null }).eq("id", cart.id);
-  if (error) return { ok: false, message: "Não foi possível remover o cupom." };
+  if (error) return { ok: false, message: t("common.error") };
 
   refreshCartViews();
-  return { ok: true, message: "Cupom removido." };
+  return { ok: true, message: t("cart.couponRemoved") };
 }
 
-export async function updateShippingZipCode(zipCode: string): Promise<CartActionResult> {
+export async function updateShippingZipCode(postcode: string): Promise<CartActionResult> {
   if (!isSupabaseConfigured()) {
     return { ok: false, message: NOT_CONFIGURED_MESSAGE };
   }
@@ -236,13 +237,13 @@ export async function updateShippingZipCode(zipCode: string): Promise<CartAction
 
   const { error } = await supabase
     .from("carts")
-    .update({ shipping_zip_code: zipCode.replace(/\D/g, "") })
+    .update({ shipping_zip_code: normalisePostcode(postcode) })
     .eq("id", cart.id);
 
-  if (error) return { ok: false, message: "Não foi possível salvar o CEP." };
+  if (error) return { ok: false, message: t("common.error") };
 
   refreshCartViews();
-  return { ok: true, message: "CEP atualizado." };
+  return { ok: true, message: t("cart.postcodeUpdated") };
 }
 
 export async function selectShippingOption(optionId: string): Promise<CartActionResult> {
@@ -258,10 +259,10 @@ export async function selectShippingOption(optionId: string): Promise<CartAction
     .update({ shipping_option_id: optionId })
     .eq("id", cart.id);
 
-  if (error) return { ok: false, message: "Não foi possível atualizar o frete." };
+  if (error) return { ok: false, message: t("common.error") };
 
   refreshCartViews();
-  return { ok: true, message: "Opção de entrega atualizada." };
+  return { ok: true, message: t("cart.deliveryOptionUpdated") };
 }
 
 /**

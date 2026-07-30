@@ -1,10 +1,10 @@
 import pt from "./pt";
 import en from "./en";
-import { defaultLocale, locales } from "./types";
+import { defaultLocale, adminLocale, locales } from "./types";
 import type { Dictionary, Locale } from "./types";
 
 export type { Dictionary, Locale };
-export { defaultLocale, locales };
+export { defaultLocale, adminLocale, locales };
 
 const dictionaries: Record<Locale, Dictionary> = { pt, en };
 
@@ -74,4 +74,15 @@ export function t(
     (text, [varName, varValue]) => text.replaceAll(`{${varName}}`, String(varValue)),
     value
   );
+}
+
+/**
+ * Admin-panel translator: always resolves against `adminLocale` ("pt"),
+ * regardless of the public site's default locale. Every page/component
+ * under src/app/admin/** and src/components/admin/** must call this
+ * instead of `t()`, so the storefront can move to en-GB while the panel
+ * stays in Portuguese for the store owner.
+ */
+export function ta(key: TranslationKey, vars?: Record<string, string | number>): string {
+  return t(key, vars, adminLocale);
 }

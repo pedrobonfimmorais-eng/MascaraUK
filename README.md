@@ -46,10 +46,10 @@ controla o estoque, recebe os pedidos e organiza os envios pelo painel
    simplesmente redirecionam para o login.
 
 3. Crie as tabelas no seu projeto Supabase executando, **em ordem**, o SQL de
-   `supabase/migrations/0001_init.sql`, `0002_catalog_and_cart.sql` e
-   `0003_orders_payments_stripe.sql` (SQL Editor do painel Supabase, ou via
-   Supabase CLI: `supabase db push`). Opcionalmente rode também
-   `supabase/seed.sql` para ver produtos de exemplo reais no banco.
+   `supabase/migrations/0001_init.sql`, `0002_catalog_and_cart.sql`,
+   `0003_orders_payments_stripe.sql` e `0004_analytics_reports.sql` (SQL Editor
+   do painel Supabase, ou via Supabase CLI: `supabase db push`). Opcionalmente
+   rode também `supabase/seed.sql` para ver produtos de exemplo reais no banco.
 
 4. Rode o servidor de desenvolvimento:
 
@@ -192,5 +192,100 @@ expirar ou o pagamento falhar, a reserva é liberada automaticamente.
 - Algumas mensagens de erro dos formulários ainda estão escritas diretamente
   em português nas Server Actions (não passam por `t()`); migrar isso para o
   dicionário central é um bom próximo passo antes de traduzir o site.
-- Analytics completo fica para uma próxima etapa (fora do escopo deste
-  prompt).
+
+## Analytics, relatórios e desempenho da loja (Prompt 5)
+
+### Como acessar o analytics
+
+Entre como administrador e acesse `/admin/analytics` pelo menu lateral do
+painel (`Analytics`). As páginas de vendas, produtos, clientes, carrinhos,
+cupons, promoções, estoque e alertas ficam em `/admin/analytics/*`; os
+relatórios exportáveis ficam em `/admin/relatorios`. Todas essas rotas
+exigem uma conta `administrador` — um cliente comum nunca alcança essas
+páginas, tanto pelo `src/proxy.ts` quanto pelo `requireAdmin()` do layout do
+painel.
+
+### Como selecionar um período
+
+No topo de cada página de analytics há um filtro com os períodos pedidos
+(hoje, ontem, últimos 7/30 dias, este mês, mês anterior, últimos 3/6 meses,
+este ano, ano anterior e período personalizado) e um seletor de comparação
+(período anterior equivalente, mesmo período do mês anterior, mesmo período
+do ano anterior). Os cartões e gráficos mostram "sem dados do período
+anterior" quando não há base de comparação suficiente.
+
+### Como visualizar o desempenho de um produto
+
+Em `/admin/analytics/produtos`, clique em um produto para abrir
+`/admin/analytics/produtos/[id]`: funil (visualizou → carrinho → checkout →
+compra), métricas detalhadas, desempenho por variação e alertas específicos
+do produto (muito visto e pouco vendido, custo não cadastrado, oferta
+relâmpago encerrada, etc.).
+
+### Como cadastrar custos
+
+- **Custo do produto**: abra a página de analytics do produto
+  (`/admin/analytics/produtos/[id]`) e preencha "Custo do produto".
+- **Custos adicionais** (taxa do meio de pagamento, embalagem, frete médio,
+  custo operacional, outras despesas): cadastre em
+  `/admin/analytics/vendas`, na seção "Custos adicionais" — cada um pode ser
+  um valor fixo por pedido pago ou uma porcentagem do faturamento, com
+  período de vigência e status ativo/inativo.
+
+### Como visualizar o lucro estimado
+
+Em `/admin/analytics/vendas`, a seção "Custos e lucro estimado" mostra
+receita de produtos, custo estimado dos produtos vendidos, descontos,
+reembolsos, lucro bruto estimado e margem bruta estimada — sempre marcado
+como estimativa, com um aviso quando existem produtos vendidos sem custo
+cadastrado.
+
+### Como exportar um relatório
+
+Em `/admin/relatorios`, escolha o tipo de relatório (pedidos, vendas,
+produtos, estoque, clientes, cupons, promoções, ofertas relâmpago,
+reembolsos, cancelamentos, analytics de produtos, movimentações de estoque
+ou lucro estimado), o período e os filtros desejados, depois clique em
+"Exportar CSV" ou "Exportar XLSX". Toda exportação é registrada no histórico
+administrativo (`admin_logs`) com o tipo, os filtros e o administrador
+responsável.
+
+### Como separar dados de teste e dados reais
+
+Todo pedido criado enquanto `STRIPE_SECRET_KEY` é uma chave de teste
+(`sk_test_...`) é marcado com `is_test = true` e fica fora dos relatórios por
+padrão. Para incluir esses dados temporariamente (ex.: enquanto testa o
+checkout), marque a caixa "Incluir dados de teste" no filtro de período de
+qualquer página de analytics.
+
+## Arquivos criados/alterados no Prompt 5
+
+| Área | Arquivos principais |
+| --- | --- |
+| Banco de dados | `supabase/migrations/0004_analytics_reports.sql` (custo do produto, `is_test`, custos adicionais, colunas extras em `analytics_events`, pesquisas internas, alertas, agendamento de relatórios, limiares configuráveis) |
+| Consentimento de cookies | `src/lib/consent.ts`, `src/components/consent/CookieConsentBanner.tsx` |
+| Registro de eventos | `src/lib/analytics/track-client.ts`, `src/app/api/analytics/track/route.ts`, trackers em produto/busca/carrinho/checkout, eventos de compra/reembolso gravados no webhook do Stripe |
+| Motor de analytics | `src/lib/analytics/{period,queries,costs,profit,products,customers,carts,coupons,promotions,stock,alerts,settings,request-params}.ts` |
+| Painéis | `src/app/admin/analytics/**` (geral, vendas, produtos, clientes, carrinhos, cupons, promoções, estoque, alertas) |
+| Relatórios | `src/lib/reports/{types,build,export}.ts`, `src/app/api/admin/reports/export/route.ts`, `/admin/relatorios` |
+| Textos | `src/i18n/pt.ts` / `src/i18n/en.ts` (namespaces `analytics` e `consent`) |
+
+### Limitações conhecidas desta etapa
+
+- Não há tabelas de resumo diário pré-agregadas: os relatórios calculam a
+  partir dos dados brutos a cada carregamento. Para um volume muito grande de
+  pedidos/eventos, considere criar resumos diários no futuro.
+- "Carrinho convertido" é aproximado por pedidos pagos no período (não existe
+  um vínculo direto carrinho→pedido, já que o carrinho é limpo após o
+  pagamento confirmado).
+- Analytics de promoções/ofertas relâmpago mostra o desempenho dos produtos
+  durante a janela ativa da promoção, mas não isola tecnicamente se a venda
+  ocorreu "por causa" da promoção — por isso o aviso na tela.
+- A exportação em PDF ainda não está implementada (apenas preparada na
+  interface); CSV e XLSX funcionam.
+- O agendamento de relatórios salva a preferência (tipo, frequência,
+  destinatários, formato, horário), mas o envio automático real depende de
+  conectar essa estrutura a um job agendado — nada é enviado sozinho.
+- Integrações com Google Analytics/GTM/Meta Pixel/TikTok Pixel têm campos
+  preparados em `store_settings.tracking_integrations`, mas o carregamento
+  condicional dos scripts em si ainda não foi implementado.

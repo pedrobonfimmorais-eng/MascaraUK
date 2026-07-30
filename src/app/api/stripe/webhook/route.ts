@@ -176,6 +176,19 @@ async function handleCheckoutSessionCompleted(admin: AdminClient, session: Strip
     if (userCart) await admin.from("cart_items").delete().eq("cart_id", userCart.id);
   }
 
+  // The "purchase" event is only ever recorded here — from the confirmed
+  // webhook — never from the success page a browser happens to load, and
+  // never twice (this whole handler only runs once per order thanks to the
+  // stripe_webhook_events dedupe insert in POST()).
+  await admin.from("analytics_events").insert({
+    event_type: "purchase",
+    order_id: order.id,
+    user_id: order.user_id,
+    value: order.total,
+    currency: order.currency,
+    is_test: order.is_test,
+  });
+
   const items = await getOrderItems(admin, order.id);
   const trackingUrl = order.user_id
     ? `${siteUrl()}/minha-conta/pedidos`
@@ -347,6 +360,15 @@ async function handleChargeRefunded(admin: AdminClient, charge: Stripe.Charge) {
     event_type: "reembolso_realizado",
     previous_status: order.payment_status,
     new_status: newPaymentStatus,
+  });
+
+  await admin.from("analytics_events").insert({
+    event_type: "refund",
+    order_id: order.id,
+    user_id: order.user_id,
+    value: amountRefunded,
+    currency: order.currency,
+    is_test: order.is_test,
   });
 
   await sendTemplateEmail(

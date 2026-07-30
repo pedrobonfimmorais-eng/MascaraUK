@@ -133,6 +133,7 @@ export type Product = {
   sold_count: number;
   avg_rating: number;
   rating_count: number;
+  cost_price: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -226,6 +227,7 @@ export type Order = {
   expires_at: string | null;
   stock_confirmed: boolean;
   is_guest_order: boolean;
+  is_test: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -409,14 +411,82 @@ export type AdminLog = {
   created_at: string;
 };
 
+export type DeviceType = "desktop" | "mobile" | "tablet" | "desconhecido";
+export type ReferrerType = "direto" | "pesquisa" | "rede_social" | "link_externo" | "campanha" | "email" | "desconhecido";
+
 export type AnalyticsEvent = {
   id: string;
   event_type: string;
   session_id: string | null;
   user_id: string | null;
   product_id: string | null;
+  variant_id: string | null;
+  order_id: string | null;
+  quantity: number | null;
+  value: number | null;
+  currency: string | null;
+  device_type: DeviceType | null;
+  referrer_type: ReferrerType | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
+  path: string | null;
+  is_test: boolean;
   metadata: Record<string, unknown> | null;
   created_at: string;
+};
+
+export type AdditionalCost = {
+  id: string;
+  name: string;
+  cost_type: "taxa_pagamento" | "embalagem" | "frete_medio" | "operacional" | "outro";
+  amount_type: DiscountType;
+  value: number;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SearchQuery = {
+  id: string;
+  term: string;
+  results_count: number;
+  session_id: string | null;
+  user_id: string | null;
+  created_at: string;
+};
+
+export type AlertPriority = "baixa" | "media" | "alta" | "critica";
+export type AlertStatus = "novo" | "lido" | "resolvido" | "ignorado";
+
+export type Alert = {
+  id: string;
+  alert_type: string;
+  title: string;
+  description: string;
+  priority: AlertPriority;
+  status: AlertStatus;
+  related_link: string | null;
+  dedupe_key: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReportSchedule = {
+  id: string;
+  report_type: string;
+  frequency: "diario" | "semanal" | "mensal";
+  recipients: string[];
+  format: "csv" | "xlsx" | "pdf";
+  send_time: string;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -462,6 +532,10 @@ export type Database = {
       custom_pages: TableDef<CustomPage>;
       admin_logs: TableDef<AdminLog>;
       analytics_events: TableDef<AnalyticsEvent>;
+      additional_costs: TableDef<AdditionalCost>;
+      search_queries: TableDef<SearchQuery>;
+      alerts: TableDef<Alert>;
+      report_schedules: TableDef<ReportSchedule>;
     };
     Views: Record<string, never>;
     Functions: {

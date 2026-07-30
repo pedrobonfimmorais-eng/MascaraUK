@@ -6,6 +6,7 @@ import { DemoNotice } from "@/components/ui/DemoNotice";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { ProductViewTracker } from "@/components/analytics/ProductViewTracker";
 import { ProductPurchasePanel } from "@/components/product/ProductPurchasePanel";
 import { RecentlyViewed } from "@/components/product/RecentlyViewed";
 import { ReviewsSection } from "@/components/product/ReviewsSection";
@@ -81,6 +82,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {!isDemo && <ProductViewTracker productId={product.id} />}
 
       <Breadcrumbs
         items={[

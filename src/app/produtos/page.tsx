@@ -7,6 +7,7 @@ import { ProductFilters } from "@/components/product/ProductFilters";
 import { ProductSort } from "@/components/product/ProductSort";
 import { Pagination } from "@/components/product/Pagination";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { SearchTracker } from "@/components/analytics/SearchTracker";
 import { getProducts } from "@/lib/catalog";
 import { parseProductListParams, type RawSearchParams } from "@/lib/catalog-query";
 
@@ -28,6 +29,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
   return (
     <Container className="flex flex-col gap-6 py-10">
+      {isSearch && <SearchTracker term={params.search ?? ""} resultsCount={total} />}
       <Breadcrumbs
         items={[
           { label: t("breadcrumbs.home"), href: "/" },

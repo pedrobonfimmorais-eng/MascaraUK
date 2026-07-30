@@ -8,6 +8,8 @@ const links = [
   { href: "/admin/pedidos", label: t("admin.sidebar.orders") },
   { href: "/admin/cupons", label: t("admin.sidebar.coupons") },
   { href: "/admin/banners", label: t("admin.sidebar.banners") },
+  { href: "/admin/analytics", label: t("admin.sidebar.analytics") },
+  { href: "/admin/relatorios", label: t("analytics.nav.reports") },
   { href: "/admin/configuracoes", label: t("admin.sidebar.settings") },
 ];
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { t } from "@/i18n";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { submitCheckout, type CheckoutActionState } from "@/lib/actions/checkout
 import { selectShippingOption } from "@/lib/actions/cart";
 import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 import { Button } from "@/components/ui/Button";
+import { trackEvent } from "@/lib/analytics/track-client";
 
 const initialState: CheckoutActionState = { error: null };
 
@@ -99,6 +100,11 @@ export function CheckoutWizard({ cart, currentUser, addresses }: CheckoutWizardP
   const [billingAddress, setBillingAddress] = useState<AddressFormValues>(EMPTY_ADDRESS);
 
   const guestFormRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    trackEvent({ type: "begin_checkout", value: cart.total, currency: cart.currencyCode });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const subtotalAfterDiscount = Math.max(0, cart.subtotal - cart.discountTotal);
   const freeShippingFromCoupon = cart.coupon?.freeShipping ?? false;

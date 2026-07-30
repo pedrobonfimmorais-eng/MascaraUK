@@ -6,6 +6,7 @@ import { addToCart } from "@/lib/actions/cart";
 import { useToast } from "@/components/ui/Toast";
 import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics/track-client";
 
 interface AddToCartButtonProps {
   productId: string;
@@ -40,7 +41,10 @@ export function AddToCartButton({
     startTransition(async () => {
       const result = await addToCart(productId, variantId, quantity);
       showToast(result.message, result.ok ? "success" : "error");
-      if (result.ok) router.refresh();
+      if (result.ok) {
+        trackEvent({ type: "add_to_cart", productId, variantId: variantId ?? undefined, quantity });
+        router.refresh();
+      }
     });
   }
 

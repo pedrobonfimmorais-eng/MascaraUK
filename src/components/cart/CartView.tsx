@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,6 +19,7 @@ import {
   updateShippingZipCode,
 } from "@/lib/actions/cart";
 import type { ValidatedCart } from "@/lib/cart/cart-data";
+import { trackEvent } from "@/lib/analytics/track-client";
 
 export function CartView({ cart }: { cart: ValidatedCart }) {
   const router = useRouter();
@@ -26,6 +27,13 @@ export function CartView({ cart }: { cart: ValidatedCart }) {
   const [isPending, startTransition] = useTransition();
   const [couponCode, setCouponCode] = useState("");
   const [zipCode, setZipCode] = useState(cart.shippingZipCode ?? "");
+
+  useEffect(() => {
+    if (cart.items.length > 0) {
+      trackEvent({ type: "view_cart", value: cart.total, currency: cart.currencyCode });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function runAction(action: () => Promise<{ ok: boolean; message: string }>) {
     startTransition(async () => {
@@ -73,7 +81,15 @@ export function CartView({ cart }: { cart: ValidatedCart }) {
                   <button
                     type="button"
                     disabled={isPending}
-                    onClick={() => runAction(() => removeCartItem(item.id))}
+                    onClick={() => {
+                      trackEvent({
+                        type: "remove_from_cart",
+                        productId: item.productId,
+                        variantId: item.variantId ?? undefined,
+                        quantity: item.quantity,
+                      });
+                      runAction(() => removeCartItem(item.id));
+                    }}
                     className="text-xs font-medium text-gray-500 hover:text-red-600"
                   >
                     {t("cart.remove")}
@@ -156,7 +172,14 @@ export function CartView({ cart }: { cart: ValidatedCart }) {
               <Button
                 variant="outline"
                 disabled={isPending || !couponCode.trim()}
-                onClick={() => runAction(() => applyCouponAction(couponCode))}
+                onClick={() =>
+                  startTransition(async () => {
+                    const result = await applyCouponAction(couponCode);
+                    showToast(result.message, result.ok ? "success" : "error");
+                    if (result.ok) trackEvent({ type: "coupon_applied" });
+                    router.refresh();
+                  })
+                }
               >
                 {t("cart.applyCoupon")}
               </Button>

@@ -211,6 +211,7 @@ export async function submitCheckout(
       customer_phone: phone,
       notes: customerNote,
       expires_at: expiresAt.toISOString(),
+      is_test: (process.env.STRIPE_SECRET_KEY ?? "").startsWith("sk_test_"),
     })
     .select("id, order_number")
     .single();

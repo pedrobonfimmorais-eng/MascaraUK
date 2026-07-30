@@ -5,6 +5,8 @@ import { siteConfig } from "@/config/site";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ToastProvider } from "@/components/ui/Toast";
+import { CookieConsentBanner } from "@/components/consent/CookieConsentBanner";
+import { PageViewTracker } from "@/components/analytics/PageViewTracker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,9 +37,11 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <ToastProvider>
+          <PageViewTracker />
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
+          <CookieConsentBanner />
         </ToastProvider>
       </body>
     </html>

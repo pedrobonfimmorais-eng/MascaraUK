@@ -106,6 +106,15 @@ export type Message = {
   updated_at: string;
 };
 
+export type RateLimitEvent = {
+  id: string;
+  action: string;
+  identifier: string;
+  ip: string | null;
+  success: boolean;
+  created_at: string;
+};
+
 export type Address = {
   id: string;
   user_id: string;
@@ -594,12 +603,17 @@ export type Database = {
       report_schedules: TableDef<ReportSchedule>;
       admin_invites: TableDef<AdminInvite>;
       messages: TableDef<Message>;
+      rate_limit_events: TableDef<RateLimitEvent>;
     };
     Views: Record<string, never>;
     Functions: {
       is_admin: {
         Args: Record<string, never>;
         Returns: boolean;
+      };
+      cleanup_old_rate_limit_events: {
+        Args: Record<string, never>;
+        Returns: void;
       };
       generate_order_number: {
         Args: Record<string, never>;

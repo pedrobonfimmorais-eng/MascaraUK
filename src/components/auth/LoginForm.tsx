@@ -5,16 +5,20 @@ import Link from "next/link";
 import { t } from "@/i18n";
 import { signIn, type AuthActionState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/Button";
+import { Turnstile } from "@/components/ui/Turnstile";
 
 const initialState: AuthActionState = { error: null };
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const [state, formAction, isPending] = useActionState(signIn, initialState);
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="redirect" value={redirectTo} />
+      <input type="hidden" name="captchaToken" value={captchaToken} />
 
       <label className="flex flex-col gap-1 text-sm text-gray-700">
         {t("auth.email")}
@@ -56,6 +60,8 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
           {t("auth.forgotPasswordLink")}
         </Link>
       </div>
+
+      {TURNSTILE_SITE_KEY && <Turnstile siteKey={TURNSTILE_SITE_KEY} onVerify={setCaptchaToken} />}
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 

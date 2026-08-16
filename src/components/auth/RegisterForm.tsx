@@ -1,19 +1,23 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { t } from "@/i18n";
 import { signUp, type AuthActionState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/Button";
+import { Turnstile } from "@/components/ui/Turnstile";
 
 const initialState: AuthActionState = { error: null };
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [state, formAction, isPending] = useActionState(signUp, initialState);
+  const [captchaToken, setCaptchaToken] = useState("");
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="redirect" value={redirectTo} />
+      <input type="hidden" name="captchaToken" value={captchaToken} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm text-gray-700">
           {t("auth.firstName")}
@@ -92,6 +96,8 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
         <input name="marketingOptIn" type="checkbox" className="mt-0.5" />
         <span>{t("auth.marketingOptIn")}</span>
       </label>
+
+      {TURNSTILE_SITE_KEY && <Turnstile siteKey={TURNSTILE_SITE_KEY} onVerify={setCaptchaToken} />}
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 

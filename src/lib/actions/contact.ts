@@ -2,6 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { sendTemplateEmail, contactMessageReceivedEmail } from "@/lib/email";
+import { verifyTurnstileToken } from "@/lib/turnstile";
+import { checkRateLimit, recordAttempt } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-ip";
 import { t } from "@/i18n";
 
 export interface ContactFormState {
@@ -43,6 +46,19 @@ export async function submitContactMessage(
     return { error: t("contact.messageTooLong") };
   }
 
+  const ip = await getClientIp();
+  const rateLimit = await checkRateLimit("contact", email, ip);
+  if (rateLimit.blocked) {
+    const minutes = Math.max(1, Math.ceil(rateLimit.retryAfterSeconds / 60));
+    return { error: t("auth.errorTooManyAttempts", { minutes }) };
+  }
+
+  const captchaToken = String(formData.get("captchaToken") ?? "");
+  const captcha = await verifyTurnstileToken(captchaToken || null, ip);
+  if (!captcha.ok) {
+    return { error: t("auth.errorCaptchaFailed") };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("messages").insert({
     name,
@@ -52,6 +68,8 @@ export async function submitContactMessage(
     message,
     order_number: orderNumber,
   });
+
+  await recordAttempt("contact", email, ip, !error);
 
   if (error) {
     return { error: t("contact.sendFailed") };

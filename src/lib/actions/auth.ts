@@ -8,6 +8,9 @@ import { mergeGuestCartIntoUser } from "@/lib/actions/cart";
 import { sendTemplateEmail, passwordChangedEmail } from "@/lib/email";
 import { formatPublicDateTime } from "@/lib/format-date";
 import { safeRedirectPath } from "@/lib/safe-redirect";
+import { verifyTurnstileToken } from "@/lib/turnstile";
+import { checkRateLimit, recordAttempt } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-ip";
 import { t } from "@/i18n";
 
 export interface AuthActionState {
@@ -56,6 +59,35 @@ async function recordLoginAttempt(email: string, success: boolean): Promise<void
 }
 
 /**
+ * Shared CAPTCHA + progressive rate-limit gate for every public,
+ * bot-exposed form (login, signup, password reset, contact, admin invite
+ * acceptance). Returns a translated error to show the visitor, or null to
+ * proceed. Never logs the CAPTCHA token or a password anywhere — only the
+ * identifier (e.g. e-mail), IP, and whether the attempt succeeded.
+ */
+async function checkCaptchaAndRateLimit(
+  action: Parameters<typeof checkRateLimit>[0],
+  identifier: string,
+  formData: FormData
+): Promise<{ error: string; ip: string | null } | { error: null; ip: string | null }> {
+  const ip = await getClientIp();
+
+  const rateLimit = await checkRateLimit(action, identifier, ip);
+  if (rateLimit.blocked) {
+    const minutes = Math.max(1, Math.ceil(rateLimit.retryAfterSeconds / 60));
+    return { error: t("auth.errorTooManyAttempts", { minutes }), ip };
+  }
+
+  const captchaToken = String(formData.get("captchaToken") ?? "");
+  const captcha = await verifyTurnstileToken(captchaToken || null, ip);
+  if (!captcha.ok) {
+    return { error: t("auth.errorCaptchaFailed"), ip };
+  }
+
+  return { error: null, ip };
+}
+
+/**
  * Downgrades the Supabase auth cookies to session-only (cleared when the
  * browser closes) when the customer didn't check "lembrar acesso". Supabase
  * itself always persists the refresh token cookie with a long expiry, so
@@ -97,13 +129,16 @@ export async function signIn(_prevState: AuthActionState, formData: FormData): P
   }
 
   if (await isRateLimited(email)) {
-    return { error: t("auth.errorTooManyAttempts") };
+    return { error: t("auth.errorTooManyAttempts", { minutes: LOGIN_ATTEMPT_WINDOW_MINUTES }) };
   }
+
+  const gate = await checkCaptchaAndRateLimit("login", email, formData);
+  if (gate.error) return { error: gate.error };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  await recordLoginAttempt(email, !error);
+  await Promise.all([recordLoginAttempt(email, !error), recordAttempt("login", email, gate.ip, !error)]);
 
   if (error) {
     return { error: t("auth.errorInvalidCredentials") };
@@ -144,6 +179,9 @@ export async function signUp(_prevState: AuthActionState, formData: FormData): P
     return { error: t("auth.errorPasswordMismatch") };
   }
 
+  const gate = await checkCaptchaAndRateLimit("signup", email, formData);
+  if (gate.error) return { error: gate.error };
+
   const supabase = await createClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const fullName = `${firstName} ${lastName}`.trim();
@@ -161,6 +199,8 @@ export async function signUp(_prevState: AuthActionState, formData: FormData): P
       emailRedirectTo: `${siteUrl}/api/auth/callback?next=${encodeURIComponent(safeRedirect)}`,
     },
   });
+
+  await recordAttempt("signup", email, gate.ip, !error);
 
   if (error) {
     if (error.message.toLowerCase().includes("already registered")) {
@@ -211,10 +251,26 @@ export async function requestPasswordReset(
     return { error: null, success: true };
   }
 
+  if (!email) {
+    return { error: t("auth.errorEmailRequired") };
+  }
+
+  // The CAPTCHA/rate-limit gate is the only thing allowed to short-circuit
+  // with a distinct error here — it says nothing about whether the e-mail
+  // is registered, only that this specific request is being throttled.
+  const gate = await checkCaptchaAndRateLimit("password_reset", email, formData);
+  if (gate.error) return { error: gate.error };
+
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${siteUrl}/api/auth/callback?next=/redefinir-senha`,
   });
+
+  // Recorded as a success regardless of whether the e-mail actually has an
+  // account: resetPasswordForEmail() doesn't tell us either way, and
+  // treating "unknown e-mail" as a failure here would let an attacker use
+  // response timing/attempt counts to enumerate registered addresses.
+  await recordAttempt("password_reset", email, gate.ip, true);
 
   // Always report success, whether or not the e-mail exists, so this form
   // can't be used to check which e-mails have an account.

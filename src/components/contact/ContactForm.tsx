@@ -1,14 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { t } from "@/i18n";
 import { submitContactMessage, type ContactFormState } from "@/lib/actions/contact";
 import { Button } from "@/components/ui/Button";
+import { Turnstile } from "@/components/ui/Turnstile";
 
 const initialState: ContactFormState = { error: null };
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export function ContactForm() {
   const [state, formAction, isPending] = useActionState(submitContactMessage, initialState);
+  const [captchaToken, setCaptchaToken] = useState("");
 
   if (state.success) {
     return (
@@ -30,6 +33,7 @@ export function ContactForm() {
         className="absolute h-0 w-0 opacity-0"
         style={{ left: "-9999px" }}
       />
+      <input type="hidden" name="captchaToken" value={captchaToken} />
 
       <Field label={t("contact.name")} name="name" />
       <Field label={t("contact.email")} name="email" type="email" />
@@ -47,6 +51,8 @@ export function ContactForm() {
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>
+
+      {TURNSTILE_SITE_KEY && <Turnstile siteKey={TURNSTILE_SITE_KEY} onVerify={setCaptchaToken} />}
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 

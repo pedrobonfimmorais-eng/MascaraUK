@@ -94,6 +94,48 @@ prova disso; a única fonte de verdade é o *Authenticator Assurance Level*
   o mesmo e-mail bloqueiam novas tentativas temporariamente
   (`src/lib/actions/auth.ts`, tabela `login_attempts`).
 
+## CAPTCHA e controle de tentativas (login, cadastro, recuperação de senha, contato, aceite de convite)
+
+Proteção contra bots via **Cloudflare Turnstile**, verificado sempre no
+servidor (`src/lib/turnstile.ts`, chamando a API `siteverify` da
+Cloudflare) — o token do widget nunca é aceito como prova por si só. Sem
+`TURNSTILE_SECRET_KEY` configurada, o CAPTCHA fica desativado (documentado
+em `.env.example`) para permitir desenvolvimento local; com a chave
+configurada, uma requisição sem token ou com token inválido é sempre
+rejeitada, sem exceção.
+
+- **Onde está ativo**: login (`LoginForm`), cadastro (`RegisterForm`),
+  recuperação de senha (`ForgotPasswordForm`), contato (`ContactForm`) e
+  aceite de convite administrativo (`AcceptInviteForm`) — os cinco pontos
+  públicos mais expostos a automação.
+- **Limite por identificador e por IP** (`src/lib/rate-limit.ts`, tabela
+  `rate_limit_events`): cada tentativa é checada nas duas dimensões
+  independentemente — por identificador (e-mail, ou o próprio token no
+  aceite de convite) e por IP de origem. Qualquer uma delas estourando o
+  limite já bloqueia a tentativa.
+- **Janela temporal e espera progressiva**: passado o limite de tentativas
+  na janela (ex.: 5 em 15 minutos no login), cada nova falha consecutiva
+  dobra o tempo de espera exigido, com teto fixo de 60 minutos — nunca
+  compõe para um bloqueio efetivamente permanente.
+- **Por que um atacante não consegue travar o e-mail de outra pessoa
+  para sempre**: o teto de 60 minutos (`MAX_BACKOFF_MINUTES`) garante que o
+  bloqueio por identificador sempre expira; e o limite por IP pega o
+  atacante independentemente de quantos e-mails alheios ele tente, então
+  distribuir tentativas entre vítimas diferentes não escapa da proteção.
+- **Mensagens genéricas**: a recuperação de senha sempre responde "se o
+  e-mail existir, enviaremos o link" independentemente de o e-mail ter
+  conta ou não — inclusive quando a tentativa é contabilizada como sucesso
+  no rate limit, já que `resetPasswordForEmail` não informa se o e-mail
+  existe.
+- **Retenção limitada**: `rate_limit_events` e `login_attempts` mantêm no
+  máximo 30 dias de histórico (`cleanup_old_rate_limit_events()`), chamada
+  automaticamente em uma fração das gravações e, quando a extensão
+  `pg_cron` está habilitada no projeto Supabase, também todo dia às 3h.
+- **Nunca loga senha nem token**: `rate_limit_events` só grava ação,
+  identificador (e-mail em minúsculas, ou o token de convite), IP e
+  sucesso/falha — sem policy de RLS, só o servidor (service role) lê ou
+  escreve nela.
+
 ## Proteções de aplicação
 
 - **Cabeçalhos de segurança** (`next.config.ts`): Content-Security-Policy,

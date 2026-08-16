@@ -1,14 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { ta } from "@/i18n";
 import { acceptAdminInviteFormAction, type AcceptInviteFormState } from "@/lib/actions/accept-invite";
 import { Button } from "@/components/ui/Button";
+import { Turnstile } from "@/components/ui/Turnstile";
 
 const initialState: AcceptInviteFormState = { error: null };
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export function AcceptInviteForm({ token }: { token: string }) {
   const [state, formAction, isPending] = useActionState(acceptAdminInviteFormAction, initialState);
+  const [captchaToken, setCaptchaToken] = useState("");
 
   if (state.success) {
     return (
@@ -22,6 +25,7 @@ export function AcceptInviteForm({ token }: { token: string }) {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="token" value={token} />
+      <input type="hidden" name="captchaToken" value={captchaToken} />
 
       <label className="flex flex-col gap-1 text-sm text-gray-700">
         {ta("adminInvite.fullName")}
@@ -51,6 +55,8 @@ export function AcceptInviteForm({ token }: { token: string }) {
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
         />
       </label>
+
+      {TURNSTILE_SITE_KEY && <Turnstile siteKey={TURNSTILE_SITE_KEY} onVerify={setCaptchaToken} />}
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 

@@ -2,6 +2,10 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAdminAction } from "@/lib/actions/activity-log";
+import { verifyTurnstileToken } from "@/lib/turnstile";
+import { checkRateLimit, recordAttempt } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-ip";
+import { t } from "@/i18n";
 import type { AdminInvite } from "@/types/database";
 
 export interface AcceptInviteResult {
@@ -96,6 +100,29 @@ export async function acceptAdminInviteFormAction(
     return { error: "As senhas não coincidem." };
   }
 
+  if (!token) {
+    return { error: "Convite inválido." };
+  }
+
+  // Rate-limited/CAPTCHA-gated by the invite TOKEN (plus IP) rather than an
+  // e-mail: this endpoint is reachable without a session by anyone who has
+  // -- or is guessing/spraying -- a token, so the token itself is the
+  // right identifier for both the bot check and the brute-force guard.
+  const ip = await getClientIp();
+  const rateLimit = await checkRateLimit("admin_invite_accept", token, ip);
+  if (rateLimit.blocked) {
+    const minutes = Math.max(1, Math.ceil(rateLimit.retryAfterSeconds / 60));
+    return { error: t("auth.errorTooManyAttempts", { minutes }) };
+  }
+
+  const captchaToken = String(formData.get("captchaToken") ?? "");
+  const captcha = await verifyTurnstileToken(captchaToken || null, ip);
+  if (!captcha.ok) {
+    return { error: t("auth.errorCaptchaFailed") };
+  }
+
   const result = await acceptAdminInvite(token, fullName, password);
+  await recordAttempt("admin_invite_accept", token, ip, result.ok);
+
   return result.ok ? { error: null, success: true } : { error: result.message };
 }

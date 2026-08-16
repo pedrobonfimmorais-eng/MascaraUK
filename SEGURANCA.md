@@ -36,34 +36,50 @@ criado via terminal (`npm run create-admin`, protegido por
 seguintes são convidados de dentro do painel (`/admin/administradores`),
 por um link de uso único que expira em 3 dias.
 
-## Autenticação em duas etapas (2FA) — status atual
+## Autenticação em duas etapas (2FA/MFA TOTP) — obrigatória para toda conta administrativa
 
-**O que existe:** a aba "Segurança" de `/admin/configuracoes` mostra, em
-modo somente leitura, quantas contas têm 2FA ativado, tentativas de login
-recentes e falhas nas últimas 24h. A tabela `admin_2fa` já existe no banco
-para guardar o estado de ativação e códigos de recuperação.
+O 2FA usa exclusivamente o MFA nativo do Supabase Auth
+(`supabase.auth.mfa.*`/`supabase.auth.admin.mfa.*`) — o segredo TOTP é
+gerado, guardado e verificado inteiramente pelo Supabase (schema `auth`,
+nunca por uma tabela nossa). Não existe (e nunca existiu de forma confiável)
+um campo booleano "2FA ativo" em `profiles`/`admin_2fa` sendo usado como
+prova disso; a única fonte de verdade é o *Authenticator Assurance Level*
+(AAL) da sessão atual, relido a cada requisição.
 
-**O que falta:** a tela de ativação do 2FA (gerar o QR code/segredo TOTP,
-confirmar o primeiro código, gerar códigos de recuperação) e o bloqueio de
-login exigindo o código quando o 2FA estiver ativo **não foram
-implementados nesta etapa**.
-
-- Por que falta: essa é uma mudança de fluxo de login que precisa ser
-  testada contra uma sessão real do Supabase Auth (o Supabase já tem
-  suporte nativo a MFA/TOTP via `supabase.auth.mfa`) — implementar e não
-  conseguir validar contra um projeto Supabase real teria risco real de
-  travar o acesso de administradores.
-- Onde configurar: quando for implementado, a integração deve usar
-  `supabase.auth.mfa.enroll/challenge/verify` (ver documentação do Supabase
-  Auth sobre MFA) em vez de reinventar TOTP do zero, e checar o nível de
-  garantia da sessão (AAL) em `src/proxy.ts` antes de liberar `/admin`.
-- Como testar depois: crie um fator TOTP de teste com um app autenticador
-  (Google Authenticator, Authy), confirme que o login exige o código
-  quando o fator está ativo, e que os códigos de recuperação funcionam uma
-  única vez cada.
-
-Até lá, o 2FA continua **opcional e não é imposto** — trate senhas fortes e
-únicas para cada administrador como a proteção principal nesta etapa.
+- **Ativação**: qualquer conta de equipe acessa `/admin/2fa` (link sempre
+  visível no menu, independente do papel) para escanear um QR code e
+  confirmar o primeiro código de 6 dígitos
+  (`src/components/auth/MfaEnrollment.tsx`, `src/lib/actions/mfa.ts`).
+- **Login com 2FA**: após e-mail/senha, uma conta de equipe sem nenhum
+  fator verificado é obrigatoriamente enviada para `/login/ativar-2fa`
+  (não existe forma de acessar `/admin` só com senha). Uma conta que já
+  tem um fator, mas cuja sessão atual ainda não completou o desafio, vai
+  para `/login/verificar-codigo`.
+- **Imposição em `/admin`**: `src/proxy.ts` chama
+  `supabase.auth.mfa.getAuthenticatorAssuranceLevel()` a cada requisição a
+  `/admin/**` e só libera quando `currentLevel === 'aal2'`. As mesmas
+  checagens são repetidas no servidor em `requireAdmin()`/
+  `requirePermission()`/`requirePrincipal()` (`src/lib/auth.ts`), como
+  defesa em profundidade caso alguém chame uma Server Action diretamente.
+- **Políticas de banco sensíveis também exigem aal2**: criar um convite de
+  administrador (`admin_invites`) e alterar `role`/`permissions` de
+  qualquer conta em `profiles` exigem `auth.jwt() ->> 'aal' = 'aal2'` na
+  própria política de RLS (`supabase/migrations/0011_real_totp_mfa.sql`),
+  não apenas o papel do usuário.
+- **Gestão de fatores**: `/admin/2fa` lista os fatores cadastrados e
+  permite removê-los (exige que a sessão atual já esteja em aal2, ou seja,
+  o dispositivo ainda funciona).
+- **Dispositivo perdido**: só o `administrador_principal`, com a própria
+  sessão em aal2, pode forçar a remoção do fator de outra conta de equipe
+  (botão "Remover 2FA (dispositivo perdido)" em `/admin/administradores`,
+  usando `supabase.auth.admin.mfa.deleteFactor` — a conta trancada não
+  precisa nem consegue se autodesbloquear). A conta afetada volta a cair em
+  `/login/ativar-2fa` no próximo acesso e precisa cadastrar um fator novo.
+- **Auditoria**: ativação, remoção (própria ou forçada) e falhas de desafio
+  geram registros em `admin_logs` (`2fa_ativado`, `2fa_removido`,
+  `2fa_removido_recuperacao_dispositivo_perdido`, `2fa_desafio_falhou`,
+  `2fa_desafio_confirmado`), tabela que nenhuma política de RLS permite
+  alterar ou apagar pelo painel.
 
 ## Senhas e sessões
 

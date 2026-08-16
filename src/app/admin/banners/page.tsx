@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: ta("admin.sidebar.banners") };
 
 export default async function AdminBannersPage() {
-  const staff = await requirePermission("products.manage");
+  const staff = await requirePermission("promotions.manage");
   if (!staff) redirect("/acesso-negado");
 
   const supabase = await createClient();

@@ -15,6 +15,7 @@ const links: { href: string; label: string; requires?: Capability }[] = [
   { href: "/admin/atividades", label: ta("admin.sidebar.activities"), requires: "activities.view" },
   { href: "/admin/administradores", label: ta("admin.administrators.title"), requires: "admins.manage" },
   { href: "/admin/configuracoes", label: ta("admin.sidebar.settings"), requires: "settings.manage" },
+  { href: "/admin/2fa", label: ta("admin.sidebar.mfa") },
 ];
 
 export function AdminSidebar({ user }: { user: PermissionCheckable }) {

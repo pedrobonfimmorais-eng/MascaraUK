@@ -400,10 +400,6 @@ qualquer página de analytics.
 
 ### Limitações conhecidas desta etapa
 
-- **2FA (TOTP)**: a tabela e a área de status existem, mas a tela de
-  ativação e a exigência do código no login **não foram implementadas** —
-  ver a seção "Autenticação em duas etapas" em `SEGURANCA.md` para o
-  porquê e como continuar.
 - **CRUD de produtos/categorias/cupons/banners**: as telas
   `/admin/produtos`, `/admin/categorias`, `/admin/cupons` e
   `/admin/banners` ainda são somente leitura (listagem) — cadastrar/editar

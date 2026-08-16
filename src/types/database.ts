@@ -90,16 +90,6 @@ export type AdminInvite = {
   created_at: string;
 };
 
-export type AdminTwoFactor = {
-  user_id: string;
-  secret: string;
-  enabled: boolean;
-  recovery_codes: string[];
-  recovery_codes_used_count: number;
-  created_at: string;
-  updated_at: string;
-};
-
 export type Message = {
   id: string;
   name: string;
@@ -603,7 +593,6 @@ export type Database = {
       alerts: TableDef<Alert>;
       report_schedules: TableDef<ReportSchedule>;
       admin_invites: TableDef<AdminInvite>;
-      admin_2fa: TableDef<AdminTwoFactor>;
       messages: TableDef<Message>;
     };
     Views: Record<string, never>;

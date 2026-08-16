@@ -86,6 +86,26 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/acesso-negado", request.url));
     }
 
+    // Password alone is never enough for /admin: re-derive the real MFA
+    // state from this request's own session JWT on every request (never a
+    // boolean stored in our own tables). nextLevel !== 'aal2' means the
+    // account has no verified TOTP factor at all yet -- mandatory
+    // enrollment, not optional. currentLevel !== 'aal2' with a factor on
+    // file means this particular session hasn't cleared the challenge yet.
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (aal?.nextLevel !== "aal2") {
+      const url = new URL("/login/ativar-2fa", request.url);
+      url.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(url);
+    }
+
+    if (aal.currentLevel !== "aal2") {
+      const url = new URL("/login/verificar-codigo", request.url);
+      url.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(url);
+    }
+
     return response;
   }
 

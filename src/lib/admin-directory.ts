@@ -8,6 +8,11 @@ export interface StaffMember {
   fullName: string | null;
   role: UserRole;
   permissions: Record<string, boolean>;
+  /**
+   * Whether this account has at least one VERIFIED TOTP factor on file in
+   * Supabase Auth right now (auth.mfa_factors, read live via the Admin MFA
+   * API) -- never a boolean we store and maintain ourselves.
+   */
   twoFactorEnabled: boolean;
   createdAt: string;
 }
@@ -23,19 +28,29 @@ const STAFF_ROLES: UserRole[] = ["estoque", "atendimento", "gerente", "administr
 export async function getStaffOverview(): Promise<StaffOverview> {
   const admin = createAdminClient();
 
-  const [{ data: profiles }, { data: twoFactorRows }, { data: invites }, { data: authUsers }] = await Promise.all([
+  const [{ data: profiles }, { data: invites }, { data: authUsers }] = await Promise.all([
     admin
       .from("profiles")
       .select("id, full_name, role, permissions, created_at")
       .in("role", STAFF_ROLES)
       .order("created_at", { ascending: true }),
-    admin.from("admin_2fa").select("user_id, enabled"),
     admin.from("admin_invites").select("*").is("used_at", null).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
     admin.auth.admin.listUsers({ perPage: 1000 }),
   ]);
 
-  const twoFactorByUser = new Map((twoFactorRows ?? []).map((row) => [row.user_id, row.enabled]));
   const emailById = new Map((authUsers?.users ?? []).map((u) => [u.id, u.email ?? null]));
+
+  // The Admin MFA API only lists factors one user at a time -- fine for a
+  // staff directory (a handful of accounts), not meant for high-frequency
+  // calls.
+  const twoFactorByUser = new Map<string, boolean>();
+  await Promise.all(
+    (profiles ?? []).map(async (profile) => {
+      const { data } = await admin.auth.admin.mfa.listFactors({ userId: profile.id });
+      const hasVerifiedFactor = (data?.factors ?? []).some((factor) => factor.status === "verified");
+      twoFactorByUser.set(profile.id, hasVerifiedFactor);
+    })
+  );
 
   const staff: StaffMember[] = (profiles ?? []).map((profile) => ({
     id: profile.id,
@@ -61,9 +76,8 @@ export interface SecurityOverview {
 export async function getSecurityOverview(): Promise<SecurityOverview> {
   const admin = createAdminClient();
 
-  const [{ data: staffRows }, { data: twoFactorRows }, { data: attempts }] = await Promise.all([
+  const [{ data: staffRows }, { data: attempts }] = await Promise.all([
     admin.from("profiles").select("id").in("role", STAFF_ROLES),
-    admin.from("admin_2fa").select("user_id").eq("enabled", true),
     admin.from("login_attempts").select("email, success, created_at").order("created_at", { ascending: false }).limit(20),
   ]);
 
@@ -74,9 +88,17 @@ export async function getSecurityOverview(): Promise<SecurityOverview> {
     .eq("success", false)
     .gte("created_at", since);
 
+  let staffWith2fa = 0;
+  await Promise.all(
+    (staffRows ?? []).map(async (row) => {
+      const { data } = await admin.auth.admin.mfa.listFactors({ userId: row.id });
+      if ((data?.factors ?? []).some((factor) => factor.status === "verified")) staffWith2fa += 1;
+    })
+  );
+
   return {
     totalStaff: staffRows?.length ?? 0,
-    staffWith2fa: twoFactorRows?.length ?? 0,
+    staffWith2fa,
     recentLoginAttempts: (attempts ?? []).map((a) => ({ email: a.email, success: a.success, createdAt: a.created_at })),
     recentFailedAttempts: recentFailedAttempts ?? 0,
   };

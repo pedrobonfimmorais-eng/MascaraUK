@@ -408,6 +408,32 @@ const en: Dictionary = {
     errorEmailRequired: "Please enter your registered email address.",
     errorResendFailed: "We could not resend the confirmation email.",
     errorResetFailed: "We could not reset your password. Please request a new recovery link.",
+    mfa: {
+      setupTitle: "Set up two-factor authentication",
+      setupExplanation:
+        "Staff accounts need a second authentication factor to access the admin panel. Scan the QR code with an authenticator app (Google Authenticator, Authy, 1Password, etc.) and confirm with the generated code.",
+      challengeTitle: "Confirm your sign-in",
+      challengeExplanation: "Enter the 6-digit code from your authenticator app.",
+      scanQrCode: "Scan this QR code with your authenticator app",
+      manualEntry: "Or enter this code manually in the app:",
+      codeLabel: "6-digit code",
+      confirmActivation: "Confirm activation",
+      confirmCode: "Confirm code",
+      loadingQrCode: "Generating QR code...",
+      errorStartingEnrollment: "We could not generate the QR code. Please try again.",
+      factorsTitle: "Registered factors",
+      factorStatusVerified: "Verified",
+      factorStatusUnverified: "Pending confirmation",
+      removeFactor: "Remove this factor",
+      confirmRemoveFactor: "Are you sure? You'll need to scan a new QR code to access the panel again.",
+      noFactors: "No factor registered yet.",
+      lostDeviceTitle: "Lost your device?",
+      lostDeviceExplanation:
+        "If you lost the phone with your authenticator app, ask the principal administrator to remove your factor under Administrators. You'll be able to enroll a new one the next time you sign in.",
+      forceRemoveAction: "Remove 2FA (lost device)",
+      confirmForceRemove:
+        "This removes this account's second factor immediately. The next time they sign in, they'll have to enroll a new authenticator. Confirm?",
+    },
   },
 
   account: {
@@ -587,6 +613,7 @@ const en: Dictionary = {
       adminLogs: "Admin logs",
       messages: "Messages",
       activities: "Activities",
+      mfa: "My two-factor authentication",
     },
     stats: {
       totalOrders: "Total orders",

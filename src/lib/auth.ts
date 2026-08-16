@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/types/database";
 import { hasPermission, isStaffRole, type Capability } from "@/lib/permissions";
+import { getAssuranceLevel } from "@/lib/mfa";
 
 export type CurrentUser = {
   id: string;
@@ -45,28 +46,52 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 }
 
 /**
- * Any staff account (estoque/atendimento/gerente/administrador/administrador_principal)
- * — the base gate for entering the /admin panel at all. Individual pages and
- * server actions must additionally call requirePermission()/requirePrincipal()
- * for the specific capability they need; being staff alone never implies
- * access to payments, security, refunds, or admin creation.
+ * Any staff account (estoque/atendimento/gerente/administrador/administrador_principal),
+ * without checking MFA. Only meant for the MFA enrollment/step-up flow
+ * itself (src/lib/actions/mfa.ts, /login/ativar-2fa, /login/verificar-codigo)
+ * -- an account that hasn't verified a second factor yet still needs to be
+ * able to reach those specific actions to set one up or step up. Every
+ * other admin entry point must use requireAdmin()/requirePermission()/
+ * requirePrincipal() below, which also enforce aal2.
  */
-export async function requireAdmin(): Promise<CurrentUser | null> {
+export async function requireStaffSession(): Promise<CurrentUser | null> {
   const user = await getCurrentUser();
   if (!user || !isStaffRole(user.role)) return null;
   return user;
 }
 
-/** Only ADMINISTRADOR_PRINCIPAL: security settings, payments config, refunds, admin creation/management. */
-export async function requirePrincipal(): Promise<CurrentUser | null> {
+/**
+ * Any staff account — the base gate for entering the /admin panel at all,
+ * and for every admin Server Action. Also requires the CURRENT SESSION to
+ * have actually completed a second factor (aal2), re-derived live from
+ * Supabase Auth on every call (getAssuranceLevel() -> auth.mfa.getAuthenticatorAssuranceLevel()).
+ * There is no "2fa done" flag anywhere in our own tables to trust instead —
+ * a password-only session can never pass this check, no matter the role.
+ * Individual pages/actions must additionally call
+ * requirePermission()/requirePrincipal() for the specific capability they
+ * need; being staff (and aal2) alone never implies access to payments,
+ * security, refunds, or admin creation.
+ */
+export async function requireAdmin(): Promise<CurrentUser | null> {
   const user = await getCurrentUser();
+  if (!user || !isStaffRole(user.role)) return null;
+
+  const { currentLevel } = await getAssuranceLevel();
+  if (currentLevel !== "aal2") return null;
+
+  return user;
+}
+
+/** Only ADMINISTRADOR_PRINCIPAL, with aal2: security settings, payments config, refunds, admin creation/management. */
+export async function requirePrincipal(): Promise<CurrentUser | null> {
+  const user = await requireAdmin();
   if (!user || user.role !== "administrador_principal") return null;
   return user;
 }
 
-/** Staff account holding the given capability (fixed by role, or granted via profiles.permissions for "administrador"). */
+/** Staff account (aal2) holding the given capability (fixed by role, or granted via profiles.permissions for "administrador"). */
 export async function requirePermission(capability: Capability): Promise<CurrentUser | null> {
-  const user = await getCurrentUser();
-  if (!user || !isStaffRole(user.role) || !hasPermission(user, capability)) return null;
+  const user = await requireAdmin();
+  if (!user || !hasPermission(user, capability)) return null;
   return user;
 }

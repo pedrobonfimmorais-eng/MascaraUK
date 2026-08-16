@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { ta, type TranslationKey } from "@/i18n";
 import { updateAdminAccess, revokeAdminAccess, revokeAdminInvite } from "@/lib/actions/admins";
+import { forceRemoveStaffMfa } from "@/lib/actions/mfa";
 import { listGrantablePermissions, type Capability } from "@/lib/permissions";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -39,6 +40,14 @@ function StaffRow({ member, currentUserId }: { member: StaffMember; currentUserI
     startTransition(async () => {
       const result = await revokeAdminAccess(member.id);
       setMessage(result.message);
+    });
+  }
+
+  function removeMfa() {
+    if (!confirm(ta("auth.mfa.confirmForceRemove"))) return;
+    startTransition(async () => {
+      const result = await forceRemoveStaffMfa(member.id);
+      setMessage(result.error ?? ta("auth.mfa.forceRemoveAction"));
     });
   }
 
@@ -99,13 +108,18 @@ function StaffRow({ member, currentUserId }: { member: StaffMember; currentUserI
               </div>
             </>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
                 {ta("admin.administrators.changeAccess")}
               </Button>
               <Button size="sm" variant="ghost" disabled={isPending} onClick={remove}>
                 {ta("admin.administrators.removeAccess")}
               </Button>
+              {member.twoFactorEnabled && (
+                <Button size="sm" variant="ghost" disabled={isPending} onClick={removeMfa}>
+                  {ta("auth.mfa.forceRemoveAction")}
+                </Button>
+              )}
             </div>
           )}
         </div>

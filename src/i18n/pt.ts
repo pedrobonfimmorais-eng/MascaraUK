@@ -406,6 +406,32 @@ const pt = {
     errorEmailRequired: "Informe o e-mail cadastrado.",
     errorResendFailed: "Não foi possível reenviar o e-mail de confirmação.",
     errorResetFailed: "Não foi possível redefinir a senha. Solicite um novo link de recuperação.",
+    mfa: {
+      setupTitle: "Ative a verificação em duas etapas",
+      setupExplanation:
+        "Contas da equipe precisam de um segundo fator de autenticação para acessar o painel administrativo. Escaneie o QR Code com um aplicativo autenticador (Google Authenticator, Authy, 1Password, etc.) e confirme com o código gerado.",
+      challengeTitle: "Confirme seu acesso",
+      challengeExplanation: "Informe o código de 6 dígitos gerado pelo seu aplicativo autenticador.",
+      scanQrCode: "Escaneie este QR Code com seu aplicativo autenticador",
+      manualEntry: "Ou digite este código manualmente no aplicativo:",
+      codeLabel: "Código de 6 dígitos",
+      confirmActivation: "Confirmar ativação",
+      confirmCode: "Confirmar código",
+      loadingQrCode: "Gerando QR Code...",
+      errorStartingEnrollment: "Não foi possível gerar o QR Code. Tente novamente.",
+      factorsTitle: "Fatores cadastrados",
+      factorStatusVerified: "Verificado",
+      factorStatusUnverified: "Pendente de confirmação",
+      removeFactor: "Remover este fator",
+      confirmRemoveFactor: "Tem certeza? Você precisará escanear um novo QR Code para acessar o painel novamente.",
+      noFactors: "Nenhum fator cadastrado ainda.",
+      lostDeviceTitle: "Perdeu o dispositivo?",
+      lostDeviceExplanation:
+        "Se você perdeu o celular com o aplicativo autenticador, peça para o administrador principal remover seu fator em Administradores. Você poderá cadastrar um novo assim que fizer login novamente.",
+      forceRemoveAction: "Remover 2FA (dispositivo perdido)",
+      confirmForceRemove:
+        "Isso remove o segundo fator desta conta imediatamente. Na próxima vez que ela entrar, terá que cadastrar um novo autenticador. Confirmar?",
+    },
   },
 
   account: {
@@ -585,6 +611,7 @@ const pt = {
       adminLogs: "Registros administrativos",
       messages: "Mensagens",
       activities: "Atividades",
+      mfa: "Minha verificação em duas etapas",
     },
     stats: {
       totalOrders: "Pedidos totais",

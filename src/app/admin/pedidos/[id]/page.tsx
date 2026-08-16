@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ta } from "@/i18n";
+import { requirePermission } from "@/lib/auth";
 import { OrderDetailView } from "@/components/orders/OrderDetailView";
 import { AdminOrderActions } from "@/components/admin/AdminOrderActions";
 import { loadOrderDetail } from "@/lib/orders/order-detail";
@@ -13,6 +14,9 @@ interface AdminOrderDetailPageProps {
 }
 
 export default async function AdminOrderDetailPage({ params }: AdminOrderDetailPageProps) {
+  const staff = await requirePermission("orders.view");
+  if (!staff) redirect("/acesso-negado");
+
   const { id } = await params;
   const detail = await loadOrderDetail(id);
   if (!detail) notFound();

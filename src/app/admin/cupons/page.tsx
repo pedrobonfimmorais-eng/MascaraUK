@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ta } from "@/i18n";
+import { requirePermission } from "@/lib/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/server";
@@ -7,6 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: ta("admin.sidebar.coupons") };
 
 export default async function AdminCouponsPage() {
+  const staff = await requirePermission("promotions.manage");
+  if (!staff) redirect("/acesso-negado");
+
   const supabase = await createClient();
   const { data: coupons } = await supabase
     .from("coupons")

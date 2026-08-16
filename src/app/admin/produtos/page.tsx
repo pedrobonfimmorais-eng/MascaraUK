@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ta } from "@/i18n";
+import { requirePermission } from "@/lib/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils";
@@ -8,6 +10,9 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: ta("admin.sidebar.products") };
 
 export default async function AdminProductsPage() {
+  const staff = await requirePermission("products.manage");
+  if (!staff) redirect("/acesso-negado");
+
   const supabase = await createClient();
   const { data: products } = await supabase
     .from("products")

@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ta, type TranslationKey } from "@/i18n";
+import { requirePermission } from "@/lib/auth";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
@@ -22,6 +24,9 @@ const STATUS_TONE: Record<string, "danger" | "warning" | "neutral" | "success"> 
 };
 
 export default async function StockAnalyticsPage({ searchParams }: StockAnalyticsPageProps) {
+  const staff = await requirePermission("analytics.view");
+  if (!staff) redirect("/acesso-negado");
+
   const { teste } = await searchParams;
   const includeTest = teste === "1";
   const thresholds = await getAnalyticsThresholds();

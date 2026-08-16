@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ta } from "@/i18n";
+import { requirePermission } from "@/lib/auth";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { PeriodFilterBar } from "@/components/analytics/PeriodFilterBar";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -15,6 +17,9 @@ interface PromotionsAnalyticsPageProps {
 }
 
 export default async function PromotionsAnalyticsPage({ searchParams }: PromotionsAnalyticsPageProps) {
+  const staff = await requirePermission("analytics.view");
+  if (!staff) redirect("/acesso-negado");
+
   const rawParams = await searchParams;
   const { period, includeTest } = parseAnalyticsSearchParams(rawParams);
 

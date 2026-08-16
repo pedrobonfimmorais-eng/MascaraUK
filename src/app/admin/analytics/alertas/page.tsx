@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ta } from "@/i18n";
+import { requirePermission } from "@/lib/auth";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { AlertsList } from "@/components/analytics/AlertsList";
 import { computeAndSyncAlerts, listAlerts } from "@/lib/analytics/alerts";
@@ -12,6 +14,9 @@ interface AlertsPageProps {
 }
 
 export default async function AlertsPage({ searchParams }: AlertsPageProps) {
+  const staff = await requirePermission("analytics.view");
+  if (!staff) redirect("/acesso-negado");
+
   const { status } = await searchParams;
   await computeAndSyncAlerts();
 

@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ta } from "@/i18n";
+import { requirePermission } from "@/lib/auth";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { PeriodFilterBar } from "@/components/analytics/PeriodFilterBar";
 import { FunnelChart } from "@/components/analytics/FunnelChart";
@@ -19,6 +20,9 @@ interface ProductAnalyticsDetailPageProps {
 }
 
 export default async function ProductAnalyticsDetailPage({ params, searchParams }: ProductAnalyticsDetailPageProps) {
+  const staff = await requirePermission("analytics.view");
+  if (!staff) redirect("/acesso-negado");
+
   const { id } = await params;
   const rawParams = await searchParams;
   const { period, includeTest } = parseAnalyticsSearchParams(rawParams);

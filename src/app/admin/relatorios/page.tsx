@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ta } from "@/i18n";
+import { requirePermission } from "@/lib/auth";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { ReportBuilder } from "@/components/reports/ReportBuilder";
 import { ReportScheduleManager } from "@/components/reports/ReportScheduleManager";
@@ -14,6 +16,9 @@ export const metadata: Metadata = { title: ta("analytics.nav.reports") };
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
+  const staff = await requirePermission("reports.export");
+  if (!staff) redirect("/acesso-negado");
+
   let schedules: ReportSchedule[] = [];
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
     const admin = createAdminClient();

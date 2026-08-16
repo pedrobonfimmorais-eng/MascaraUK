@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ta } from "@/i18n";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/auth";
+import { hasPermission, type PermissionCheckable } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: ta("admin.dashboard") };
 
@@ -88,15 +90,34 @@ async function getNotifications(): Promise<AdminNotifications> {
 }
 
 export default async function AdminDashboardPage() {
+  const user = await getCurrentUser();
+  // requireAdmin() already ran in the layout, so a staff account is
+  // guaranteed here, but the dashboard still only shows the cards each
+  // role's capabilities actually cover (least privilege even on the
+  // landing page): estoque never sees revenue/customers, atendimento never
+  // sees stock, etc.
+  const checkable: PermissionCheckable = user ?? { role: "cliente", permissions: {} };
+  const canViewOrders = hasPermission(checkable, "orders.view");
+  const canViewCustomers = hasPermission(checkable, "customers.view");
+  const canViewProducts = hasPermission(checkable, "products.manage") || hasPermission(checkable, "inventory.manage");
+
   const [counts, notifications] = await Promise.all([getCounts(), getNotifications()]);
 
   const alerts: { label: string; count: number; href: string }[] = [
-    { label: ta("admin.notifications.newPaidOrders"), count: notifications.newPaidOrders, href: "/admin/pedidos?status=recebido&payment=pago" },
-    { label: ta("admin.notifications.refusedPayments"), count: notifications.refused, href: "/admin/pedidos?payment=recusado" },
-    { label: ta("admin.notifications.awaitingShipment"), count: notifications.awaitingShipment, href: "/admin/pedidos?status=pronto_para_envio" },
-    { label: ta("admin.notifications.returnRequests"), count: notifications.returnRequests, href: "/admin/pedidos?status=devolucao_solicitada" },
-    { label: ta("admin.notifications.lowStock"), count: notifications.lowStock, href: "/admin/produtos" },
-    { label: ta("admin.notifications.outOfStock"), count: notifications.outOfStock, href: "/admin/produtos" },
+    ...(canViewOrders
+      ? [
+          { label: ta("admin.notifications.newPaidOrders"), count: notifications.newPaidOrders, href: "/admin/pedidos?status=recebido&payment=pago" },
+          { label: ta("admin.notifications.refusedPayments"), count: notifications.refused, href: "/admin/pedidos?payment=recusado" },
+          { label: ta("admin.notifications.awaitingShipment"), count: notifications.awaitingShipment, href: "/admin/pedidos?status=pronto_para_envio" },
+          { label: ta("admin.notifications.returnRequests"), count: notifications.returnRequests, href: "/admin/pedidos?status=devolucao_solicitada" },
+        ]
+      : []),
+    ...(canViewProducts
+      ? [
+          { label: ta("admin.notifications.lowStock"), count: notifications.lowStock, href: "/admin/produtos" },
+          { label: ta("admin.notifications.outOfStock"), count: notifications.outOfStock, href: "/admin/produtos" },
+        ]
+      : []),
   ].filter((alert) => alert.count > 0);
 
   return (
@@ -106,10 +127,10 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label={ta("admin.stats.totalOrders")} value={counts.orders} />
-        <StatCard label={ta("admin.stats.totalRevenue")} value={formatCurrency(counts.revenue)} />
-        <StatCard label={ta("admin.stats.totalProducts")} value={counts.products} />
-        <StatCard label={ta("admin.stats.totalCustomers")} value={counts.customers} />
+        {canViewOrders && <StatCard label={ta("admin.stats.totalOrders")} value={counts.orders} />}
+        {canViewOrders && <StatCard label={ta("admin.stats.totalRevenue")} value={formatCurrency(counts.revenue)} />}
+        {canViewProducts && <StatCard label={ta("admin.stats.totalProducts")} value={counts.products} />}
+        {canViewCustomers && <StatCard label={ta("admin.stats.totalCustomers")} value={counts.customers} />}
       </div>
 
       {alerts.length > 0 && (

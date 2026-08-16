@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ta, type TranslationKey } from "@/i18n";
+import { requirePermission } from "@/lib/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils";
@@ -43,6 +45,9 @@ interface AdminOrdersPageProps {
 }
 
 export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageProps) {
+  const staff = await requirePermission("orders.view");
+  if (!staff) redirect("/acesso-negado");
+
   const { status, payment, from, to, q, sort } = await searchParams;
   const admin = createAdminClient();
 

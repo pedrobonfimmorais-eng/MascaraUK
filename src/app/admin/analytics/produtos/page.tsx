@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ta } from "@/i18n";
+import { requirePermission } from "@/lib/auth";
 import { AnalyticsNav } from "@/components/analytics/AnalyticsNav";
 import { PeriodFilterBar } from "@/components/analytics/PeriodFilterBar";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -27,6 +29,9 @@ const SORT_OPTIONS: { value: ProductSortKey; label: string }[] = [
 ];
 
 export default async function ProductsAnalyticsPage({ searchParams }: ProductsAnalyticsPageProps) {
+  const staff = await requirePermission("analytics.view");
+  if (!staff) redirect("/acesso-negado");
+
   const rawParams = await searchParams;
   const { period, includeTest } = parseAnalyticsSearchParams(rawParams);
   const sort = (SORT_OPTIONS.find((o) => o.value === rawParams.ordenar)?.value ?? "mostViewed") as ProductSortKey;

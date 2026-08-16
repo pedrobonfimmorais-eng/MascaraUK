@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 /**
  * Shared landing point for Supabase Auth e-mail links (signup confirmation
@@ -12,8 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/minha-conta";
-  const safeNext = next.startsWith("/") ? next : "/minha-conta";
+  const safeNext = safeRedirectPath(searchParams.get("next"));
 
   if (code) {
     const supabase = await createClient();

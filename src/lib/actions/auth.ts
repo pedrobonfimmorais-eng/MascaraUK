@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { mergeGuestCartIntoUser } from "@/lib/actions/cart";
 import { sendTemplateEmail, passwordChangedEmail } from "@/lib/email";
 import { formatPublicDateTime } from "@/lib/format-date";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { t } from "@/i18n";
 
 export interface AuthActionState {
@@ -89,7 +90,7 @@ export async function signIn(_prevState: AuthActionState, formData: FormData): P
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const remember = formData.get("remember") === "on";
-  const redirectTo = String(formData.get("redirect") ?? "/minha-conta");
+  const redirectTo = safeRedirectPath(String(formData.get("redirect") ?? ""));
 
   if (!email || !password) {
     return { error: t("auth.errorInvalidCredentials") };
@@ -114,7 +115,7 @@ export async function signIn(_prevState: AuthActionState, formData: FormData): P
     await mergeGuestCartIntoUser(data.user.id);
   }
 
-  redirect(redirectTo.startsWith("/") ? redirectTo : "/minha-conta");
+  redirect(redirectTo);
 }
 
 export async function signUp(_prevState: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -125,8 +126,7 @@ export async function signUp(_prevState: AuthActionState, formData: FormData): P
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
   const acceptedTerms = formData.get("acceptTerms") === "on";
   const marketingOptIn = formData.get("marketingOptIn") === "on";
-  const redirectTo = String(formData.get("redirect") ?? "/minha-conta");
-  const safeRedirect = redirectTo.startsWith("/") ? redirectTo : "/minha-conta";
+  const safeRedirect = safeRedirectPath(String(formData.get("redirect") ?? ""));
 
   if (!firstName || !lastName) {
     return { error: t("auth.errorNameRequired") };

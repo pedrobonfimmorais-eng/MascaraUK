@@ -71,6 +71,50 @@ controla o estoque, recebe os pedidos e organiza os envios pelo painel
    stripe listen --forward-to localhost:3000/api/stripe/webhook
    ```
 
+## Comandos disponíveis
+
+| Comando | O que faz |
+| --- | --- |
+| `npm install` | Instala as dependências (necessário antes de qualquer outro comando) |
+| `npm run dev` | Sobe o servidor de desenvolvimento em `http://localhost:3000` |
+| `npm run lint` | Roda o ESLint (`eslint.config.mjs`) sobre o projeto |
+| `npm run build` | Gera o build de produção (`next build`), incluindo checagem de tipos TypeScript |
+| `npm run start` | Serve o build de produção gerado por `npm run build` |
+| `npm run create-admin` | Cria o primeiro administrador (`administrador_principal`), protegido por `ADMIN_SETUP_SECRET` — ver seção abaixo |
+
+Não há suite de testes automatizados configurada neste projeto (sem
+`npm test`/Jest/Vitest/Playwright) — a validação hoje é manual (checklist em
+`CHECKLIST-LANCAMENTO.md`) mais lint e build.
+
+**Estado verificado nesta revisão** (commit `fc66ad4`, branch
+`claude/xeno-labs-ecommerce-audit-xz74xo`): `npm run lint` passa sem erros
+nem avisos; `npm run build` completa com sucesso (58 rotas geradas), mesmo
+sem `.env.local` configurado — a loja cai automaticamente no modo de dados
+de demonstração descrito acima. Nenhum erro pré-existente foi encontrado
+para registrar.
+
+## Ponto de restauração desta etapa
+
+Antes de novas mudanças serem aplicadas ao projeto, o estado atual do
+código foi conferido e documentado como ponto seguro de restauração:
+
+- **Commit:** `fc66ad49024ef57440b43d0236d4f5a36c4d44db`
+- **Branch:** `claude/xeno-labs-ecommerce-audit-xz74xo`
+- **Como voltar para este ponto**, caso uma mudança futura precise ser
+  desfeita:
+  ```bash
+  git fetch origin
+  git checkout claude/xeno-labs-ecommerce-audit-xz74xo
+  git reset --hard fc66ad49024ef57440b43d0236d4f5a36c4d44db
+  ```
+  (use `git log` para localizar commits mais recentes se este ponto já
+  não for o mais atual da branch).
+- Para restaurar dados do banco/imagens (não apenas código), veja
+  `BACKUP-E-RESTAURACAO.md`.
+- Nenhuma credencial real está versionada neste repositório — apenas
+  `.env.example`, sem valores preenchidos (confirmado nesta revisão via
+  `git ls-files | grep env`).
+
 ## Como criar a primeira conta de administrador
 
 Por segurança, **não existe** opção de "criar conta de administrador" no
